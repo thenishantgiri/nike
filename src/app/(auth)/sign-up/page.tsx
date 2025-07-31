@@ -1,14 +1,11 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
 import AuthForm from "@/components/AuthForm";
 import SocialProviders from "@/components/SocialProviders";
+import { signUp } from "@/lib/auth/actions";
 
 export default function SignUp() {
-  const handleSignUp = (data: { email: string; password: string; name?: string }) => {
-    console.log("Sign up data:", data);
-  };
+  const handleSignUp = signUp;
 
   return (
     <div className="space-y-8">
