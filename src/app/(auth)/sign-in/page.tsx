@@ -1,19 +1,16 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
 import AuthForm from "@/components/AuthForm";
 import SocialProviders from "@/components/SocialProviders";
+import { signIn } from "@/lib/auth/actions";
 
 export default function SignIn() {
-  const handleSignIn = (data: { email: string; password: string }) => {
-    console.log("Sign in data:", data);
-  };
+  const handleSignIn = signIn;
 
   return (
     <div className="space-y-8">
       <div className="text-right">
-        <span className="text-dark-700 font-jost text-body">Don't have an account? </span>
+        <span className="text-dark-700 font-jost text-body">Don&apos;t have an account? </span>
         <Link href="/sign-up" className="text-dark-900 font-jost font-medium underline">
           Sign Up
         </Link>
