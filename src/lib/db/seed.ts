@@ -106,6 +106,7 @@ export async function seed() {
       { name: 'Soccer', slug: 'soccer' },
     ]).returning();
     const categoryData = categoryResults;
+    const categoryArray = Array.isArray(categoryData) ? categoryData : [];
 
     console.log('🏷️ Seeding collections...');
     const collectionResults = await db.insert(collections).values([
@@ -120,7 +121,7 @@ export async function seed() {
       {
         name: 'Air Max 270',
         description: 'The Nike Air Max 270 delivers visible Air cushioning from heel to toe.',
-        categoryId: categoryData[2]!.id, // Lifestyle
+        categoryId: categoryArray[2]!.id, // Lifestyle
         genderId: unisexGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -129,7 +130,7 @@ export async function seed() {
       {
         name: 'Air Force 1',
         description: 'The radiance lives on in the Nike Air Force 1, the basketball original.',
-        categoryId: categoryData[1]!.id, // Basketball
+        categoryId: categoryArray[1]!.id, // Basketball
         genderId: unisexGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -138,7 +139,7 @@ export async function seed() {
       {
         name: 'React Infinity Run',
         description: 'Nike React Infinity Run Flyknit is designed to help reduce injury.',
-        categoryId: categoryData[0]!.id, // Running
+        categoryId: categoryArray[0]!.id, // Running
         genderId: unisexGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -147,7 +148,7 @@ export async function seed() {
       {
         name: 'Air Zoom Pegasus',
         description: 'The Nike Air Zoom Pegasus delivers the responsive cushioning you love.',
-        categoryId: categoryData[0]!.id, // Running
+        categoryId: categoryArray[0]!.id, // Running
         genderId: menGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -156,7 +157,7 @@ export async function seed() {
       {
         name: 'Metcon 7',
         description: 'The Nike Metcon 7 is the gold standard for weight training.',
-        categoryId: categoryData[3]!.id, // Training
+        categoryId: categoryArray[3]!.id, // Training
         genderId: unisexGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -165,7 +166,7 @@ export async function seed() {
       {
         name: 'Air Max 90',
         description: 'Nothing as fly, nothing as comfortable, nothing as proven.',
-        categoryId: categoryData[2]!.id, // Lifestyle
+        categoryId: categoryArray[2]!.id, // Lifestyle
         genderId: unisexGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -174,7 +175,7 @@ export async function seed() {
       {
         name: 'Blazer Mid',
         description: 'The Nike Blazer Mid brings a timeless design back to the streets.',
-        categoryId: categoryData[2]!.id, // Lifestyle
+        categoryId: categoryArray[2]!.id, // Lifestyle
         genderId: womenGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -183,7 +184,7 @@ export async function seed() {
       {
         name: 'Air Max 97',
         description: 'The Nike Air Max 97 takes inspiration from Japanese bullet trains.',
-        categoryId: categoryData[2]!.id, // Lifestyle
+        categoryId: categoryArray[2]!.id, // Lifestyle
         genderId: menGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -192,7 +193,7 @@ export async function seed() {
       {
         name: 'Dunk Low',
         description: 'Created for the hardwood but taken to the streets.',
-        categoryId: categoryData[1]!.id, // Basketball
+        categoryId: categoryArray[1]!.id, // Basketball
         genderId: unisexGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -201,7 +202,7 @@ export async function seed() {
       {
         name: 'Air Max Plus',
         description: 'The Nike Air Max Plus delivers a bold look with incredible comfort.',
-        categoryId: categoryData[2]!.id, // Lifestyle
+        categoryId: categoryArray[2]!.id, // Lifestyle
         genderId: menGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -210,7 +211,7 @@ export async function seed() {
       {
         name: 'React Element 55',
         description: 'The Nike React Element 55 is inspired by the Nike internationalist.',
-        categoryId: categoryData[2]!.id, // Lifestyle
+        categoryId: categoryArray[2]!.id, // Lifestyle
         genderId: womenGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -219,7 +220,7 @@ export async function seed() {
       {
         name: 'Air Zoom Structure',
         description: 'The Nike Air Zoom Structure provides stability and support.',
-        categoryId: categoryData[0]!.id, // Running
+        categoryId: categoryArray[0]!.id, // Running
         genderId: menGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -228,7 +229,7 @@ export async function seed() {
       {
         name: 'Free RN 5.0',
         description: 'The Nike Free RN 5.0 delivers the barefoot-like feel you love.',
-        categoryId: categoryData[0]!.id, // Running
+        categoryId: categoryArray[0]!.id, // Running
         genderId: womenGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -237,7 +238,7 @@ export async function seed() {
       {
         name: 'Air Max 2090',
         description: 'The Nike Air Max 2090 takes the DNA of the Air Max 90.',
-        categoryId: categoryData[2]!.id, // Lifestyle
+        categoryId: categoryArray[2]!.id, // Lifestyle
         genderId: unisexGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -246,7 +247,7 @@ export async function seed() {
       {
         name: 'Zoom Freak 3',
         description: 'Giannis needs a shoe that can keep up with his freakish athleticism.',
-        categoryId: categoryData[1]!.id, // Basketball
+        categoryId: categoryArray[1]!.id, // Basketball
         genderId: menGender.id,
         brandId: nikeBrand.id,
         isPublished: true,
@@ -258,7 +259,8 @@ export async function seed() {
     for (const productInfo of productData) {
       const { images, ...productDataToInsert } = productInfo;
       const insertedProductArray = await db.insert(products).values(productDataToInsert).returning();
-      const product = insertedProductArray[0];
+      const product = Array.isArray(insertedProductArray) ? insertedProductArray[0] : null;
+      if (!product) continue;
       insertedProducts.push({ ...product, images });
       console.log(`✅ Created product: ${product.name}`);
     }
@@ -299,7 +301,8 @@ export async function seed() {
         };
         
         const insertedVariantArray = await db.insert(productVariants).values(variant).returning();
-        const insertedVariant = insertedVariantArray[0];
+        const insertedVariant = Array.isArray(insertedVariantArray) ? insertedVariantArray[0] : null;
+        if (!insertedVariant) continue;
         allVariants.push(insertedVariant);
         console.log(`  ✅ Created variant: ${variant.sku}`);
       }
@@ -353,7 +356,7 @@ export async function seed() {
     console.log(`  - 3 genders`);
     console.log(`  - ${colorData.length} colors`);
     console.log(`  - ${sizeData.length} sizes`);
-    console.log(`  - ${categoryData.length} categories`);
+    console.log(`  - ${categoryArray.length} categories`);
     console.log(`  - ${collectionData.length} collections`);
     console.log(`  - ${insertedProducts.length} products`);
     console.log(`  - ${allVariants.length} product variants`);

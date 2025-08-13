@@ -18,7 +18,7 @@ export const products = pgTable('products', {
   genderId: uuid('gender_id').notNull().references(() => genders.id),
   brandId: uuid('brand_id').notNull().references(() => brands.id),
   isPublished: boolean('is_published').notNull().default(false),
-  defaultVariantId: uuid('default_variant_id').references(() => productVariants.id),
+  defaultVariantId: uuid('default_variant_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

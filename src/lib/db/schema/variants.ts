@@ -10,7 +10,7 @@ import { orderItems } from './orders';
 
 export const productVariants = pgTable('product_variants', {
   id: uuid('id').primaryKey().defaultRandom(),
-  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').notNull(),
   sku: text('sku').notNull().unique(),
   price: numeric('price', { precision: 10, scale: 2 }).notNull(),
   salePrice: numeric('sale_price', { precision: 10, scale: 2 }),
