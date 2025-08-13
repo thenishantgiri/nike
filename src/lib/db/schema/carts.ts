@@ -1,25 +1,29 @@
-import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core';
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
-import { relations } from 'drizzle-orm';
-import { user } from './user';
-import { guest } from './guest';
-import { productVariants } from './variants';
+import { relations } from "drizzle-orm";
+import { integer, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { guest } from "./guest";
+import { user } from "./user";
+import { productVariants } from "./variants";
 
-export const carts = pgTable('carts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
-  guestId: text('guest_id').references(() => guest.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+export const carts = pgTable("carts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => user.id, { onDelete: "cascade" }),
+  guestId: uuid("guest_id").references(() => guest.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const cartItems = pgTable('cart_items', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cartId: uuid('cart_id').notNull().references(() => carts.id, { onDelete: 'cascade' }),
-  productVariantId: uuid('product_variant_id').notNull().references(() => productVariants.id, { onDelete: 'cascade' }),
-  quantity: integer('quantity').notNull().default(1),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+export const cartItems = pgTable("cart_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cartId: uuid("cart_id")
+    .notNull()
+    .references(() => carts.id, { onDelete: "cascade" }),
+  productVariantId: uuid("product_variant_id")
+    .notNull()
+    .references(() => productVariants.id, { onDelete: "cascade" }),
+  quantity: integer("quantity").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const cartsRelations = relations(carts, ({ one, many }) => ({
