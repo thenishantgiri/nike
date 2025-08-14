@@ -63,7 +63,7 @@ export default function Filters() {
 
             {expanded[group] && (
               <div className="mt-2 grid grid-cols-2 gap-2">
-                {filterOptions[group].map((opt: any) => {
+                {filterOptions[group].map((opt: { label: string; value: string }) => {
                   const checked = (query[group] || []).includes(opt.value);
                   return (
                     <label key={opt.value} className="flex items-center gap-2 cursor-pointer">

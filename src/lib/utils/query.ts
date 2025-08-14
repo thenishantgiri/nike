@@ -55,7 +55,7 @@ export function toggleMultiValueParam(
   if (existing.has(value)) existing.delete(value);
   else existing.add(value);
   const next: ProductQuery = { ...current, [key]: Array.from(existing) };
-  delete (next as any).page;
+  delete (next as ProductQuery).page;
   return next;
 }
 
@@ -64,8 +64,8 @@ export function setParam<T extends keyof ProductQuery>(
   key: T,
   value: ProductQuery[T]
 ): ProductQuery {
-  const next = { ...current, [key]: value };
-  if (key !== "page") delete (next as any).page;
+  const next: ProductQuery = { ...current, [key]: value };
+  if (key !== "page") delete (next as ProductQuery).page;
   return next;
 }
 
@@ -73,8 +73,8 @@ export function removeParam<T extends keyof ProductQuery>(
   current: ProductQuery,
   key: T
 ): ProductQuery {
-  const next = { ...current };
-  delete (next as any)[key];
-  if (key !== "page") delete (next as any).page;
+  const next: ProductQuery = { ...current };
+  delete (next as ProductQuery)[key];
+  if (key !== "page") delete (next as ProductQuery).page;
   return next;
 }

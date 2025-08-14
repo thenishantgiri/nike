@@ -1,7 +1,9 @@
+export type Gender = "men" | "women" | "unisex";
+
 export type MockProduct = {
   id: string;
   name: string;
-  gender: ("men" | "women" | "unisex")[];
+  gender: Gender[];
   colors: string[]; // simple color tokens
   sizes: string[]; // shoe sizes or apparel sizes
   price: number;

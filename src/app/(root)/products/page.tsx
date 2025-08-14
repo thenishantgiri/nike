@@ -1,4 +1,4 @@
-import { mockProducts, MockProduct } from "@/lib/data/products";
+import { mockProducts, MockProduct, Gender } from "@/lib/data/products";
 import Card from "@/components/Card";
 import Filters from "@/components/Filters";
 import Sort from "@/components/Sort";
@@ -18,7 +18,7 @@ function withinPrice(price: number, ranges: string[]) {
 }
 
 function matches(product: MockProduct, q: ProductQuery) {
-  if (q.gender?.length && !q.gender.some((g) => product.gender.includes(g as any))) return false;
+  if (q.gender?.length && !q.gender.some((g) => product.gender.includes(g as Gender))) return false;
   if (q.size?.length && !q.size.some((s) => product.sizes.includes(s))) return false;
   if (q.color?.length && !q.color.some((c) => product.colors.includes(c))) return false;
   if (!withinPrice(product.price, q.price || [])) return false;
@@ -41,7 +41,7 @@ function sortProducts(items: MockProduct[], sort?: ProductQuery["sort"]) {
 
 export default async function ProductsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const q = parseQuery(new URLSearchParams(params as any).toString());
+  const q = parseQuery(new URLSearchParams(params as Record<string, string | string[] | undefined>).toString());
 
   const filtered = mockProducts.filter((p) => matches(p, q));
   const sorted = sortProducts(filtered, q.sort);
@@ -58,8 +58,8 @@ export default async function ProductsPage({ searchParams }: PageProps) {
         <section>
           {q.gender?.length || q.size?.length || q.color?.length || q.price?.length ? (
             <div className="flex flex-wrap gap-2 mb-4">
-              {["gender","size","color","price"].flatMap((key) =>
-                (q as any)[key]?.map((v: string) => (
+              {(["gender","size","color","price"] as const).flatMap((key) =>
+                (q[key] as string[] | undefined)?.map((v) => (
                   <span
                     key={`${key}-${v}`}
                     className="px-3 py-1 rounded-full bg-light-200 text-dark-700 font-jost text-caption"
