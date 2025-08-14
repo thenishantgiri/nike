@@ -8,6 +8,7 @@ import {
   text,
   timestamp,
   uuid,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { cartItems } from "./carts";
@@ -17,28 +18,34 @@ import { orderItems } from "./orders";
 import { productImages } from "./product-images";
 import { products } from "./products";
 
-export const productVariants = pgTable("product_variants", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  productId: uuid("product_id").notNull(),
-  sku: text("sku").notNull().unique(),
-  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
-  salePrice: numeric("sale_price", { precision: 10, scale: 2 }),
-  colorId: uuid("color_id")
-    .notNull()
-    .references(() => colors.id),
-  sizeId: uuid("size_id")
-    .notNull()
-    .references(() => sizes.id),
-  inStock: integer("in_stock").notNull().default(0),
-  weight: real("weight"),
-  dimensions: jsonb("dimensions").$type<{
-    length: number;
-    width: number;
-    height: number;
-  }>(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+export const productVariants = pgTable(
+  "product_variants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id").notNull(),
+    sku: text("sku").notNull().unique(),
+    price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+    salePrice: numeric("sale_price", { precision: 10, scale: 2 }),
+    colorId: uuid("color_id")
+      .notNull()
+      .references(() => colors.id),
+    sizeId: uuid("size_id")
+      .notNull()
+      .references(() => sizes.id),
+    inStock: integer("in_stock").notNull().default(0),
+    weight: real("weight"),
+    dimensions: jsonb("dimensions").$type<{
+      length: number;
+      width: number;
+      height: number;
+    }>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    colorProductIdx: index("idx_variants_color_product").on(t.colorId, t.productId),
+  })
+);
 
 export const productVariantsRelations = relations(
   productVariants,

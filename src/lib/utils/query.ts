@@ -77,3 +77,56 @@ export function removeParam<T extends keyof ProductQuery>(
   if (key !== "page") delete (next as ProductQuery).page;
   return next;
 }
+export type DbProductFilters = {
+  search?: string;
+  category?: string;
+  brand?: string;
+  gender?: string;
+  colors?: string[];
+  sizes?: string[];
+  priceMin?: number;
+  priceMax?: number;
+  sortBy?: "latest" | "oldest" | "price_asc" | "price_desc";
+  page?: number;
+  limit?: number;
+};
+
+export function parseFilterParams(searchParams: URLSearchParams): DbProductFilters {
+  const getArr = (k: string) => {
+    const all = searchParams.getAll(k);
+    if (all.length) return all.flatMap((v) => v.split(",")).filter(Boolean);
+    const single = searchParams.get(k);
+    return single ? single.split(",").filter(Boolean) : undefined;
+  };
+  const num = (k: string) => {
+    const v = searchParams.get(k);
+    if (!v) return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  const sort = (searchParams.get("sortBy") ||
+    searchParams.get("sort")) as DbProductFilters["sortBy"] | null;
+  const page = num("page");
+  const limit = num("limit");
+  return {
+    search: searchParams.get("search") || undefined,
+    category: searchParams.get("category") || undefined,
+    brand: searchParams.get("brand") || undefined,
+    gender: searchParams.get("gender") || undefined,
+    colors: getArr("colors"),
+    sizes: getArr("sizes"),
+    priceMin: num("priceMin"),
+    priceMax: num("priceMax"),
+    sortBy: sort ?? "latest",
+    page: page ?? 1,
+    limit: limit ?? 12,
+  };
+}
+
+export function buildProductQueryObject(filters: DbProductFilters) {
+  return {
+    ...filters,
+    page: Math.max(1, filters.page ?? 1),
+    limit: Math.max(1, Math.min(60, filters.limit ?? 12)),
+  };
+}
