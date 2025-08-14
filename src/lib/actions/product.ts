@@ -128,7 +128,7 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
     filters.sortBy === "price_asc"
       ? asc(sql`min(${priceExpr})`)
       : filters.sortBy === "price_desc"
-      ? desc(sql`max(${priceExpr})`)
+      ? desc(sql`min(${priceExpr})`)
       : filters.sortBy === "oldest"
       ? asc(products.createdAt)
       : desc(products.createdAt);
