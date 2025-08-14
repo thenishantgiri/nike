@@ -3,6 +3,7 @@ import Card from "@/components/Card";
 import Filters from "@/components/Filters";
 import Sort from "@/components/Sort";
 import { parseQuery, ProductQuery } from "@/lib/utils/query";
+import qs from "query-string";
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -41,7 +42,7 @@ function sortProducts(items: MockProduct[], sort?: ProductQuery["sort"]) {
 
 export default async function ProductsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const q = parseQuery(new URLSearchParams(params as Record<string, string | string[] | undefined>).toString());
+  const q = parseQuery(qs.stringify(params as Record<string, string | string[] | undefined>));
 
   const filtered = mockProducts.filter((p) => matches(p, q));
   const sorted = sortProducts(filtered, q.sort);
