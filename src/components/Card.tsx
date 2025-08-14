@@ -28,7 +28,7 @@ export default function Card({
           </div>
         )}
 
-        <div className="relative size-[390px] rounded-lg overflow-hidden">
+        <div className="relative h-[390px] w-full rounded-lg overflow-hidden">
           <Image src={image} alt={title} fill className="object-cover" />
         </div>
       </div>
