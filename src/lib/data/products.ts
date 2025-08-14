@@ -1,0 +1,187 @@
+export type MockProduct = {
+  id: string;
+  name: string;
+  gender: ("men" | "women" | "unisex")[];
+  colors: string[]; // simple color tokens
+  sizes: string[]; // shoe sizes or apparel sizes
+  price: number;
+  isNew?: boolean;
+  badge?: string;
+  image: string;
+  category: string;
+};
+
+export const mockProducts: MockProduct[] = [
+  {
+    id: "af1-mid-07",
+    name: "Nike Air Force 1 Mid '07",
+    gender: ["men"],
+    colors: ["white", "black"],
+    sizes: ["7","8","9","10","11","12"],
+    price: 98.3,
+    badge: "Best Seller",
+    image: "/shoes/shoe-1.jpg",
+    category: "Men's Shoes",
+  },
+  {
+    id: "court-vision-next",
+    name: "Nike Court Vision Low Next Nature",
+    gender: ["men","women"],
+    colors: ["black","teal"],
+    sizes: ["6","7","8","9","10","11"],
+    price: 88.5,
+    isNew: true,
+    image: "/shoes/shoe-2.webp",
+    category: "Lifestyle Shoes",
+  },
+  {
+    id: "air-max-system",
+    name: "Nike Air Max SYSTM",
+    gender: ["men"],
+    colors: ["red","grey"],
+    sizes: ["7","8","9","10","11"],
+    price: 102.0,
+    image: "/shoes/shoe-3.webp",
+    category: "Men's Shoes",
+  },
+  {
+    id: "air-force-platform",
+    name: "Nike Air Force 1 PLATFORM",
+    gender: ["women"],
+    colors: ["white","pink"],
+    sizes: ["5","6","7","8","9"],
+    price: 98.3,
+    badge: "Best Seller",
+    image: "/shoes/shoe-4.webp",
+    category: "Women's Shoes",
+  },
+  {
+    id: "dunk-low-retro",
+    name: "Nike Dunk Low Retro",
+    gender: ["men","women"],
+    colors: ["green","yellow"],
+    sizes: ["6","7","8","9","10","11"],
+    price: 120,
+    image: "/shoes/shoe-5.avif",
+    category: "Men's Shoes",
+  },
+  {
+    id: "air-max-90",
+    name: "Nike Air Max 90 SE",
+    gender: ["men","unisex"],
+    colors: ["orange","white"],
+    sizes: ["7","8","9","10"],
+    price: 130,
+    image: "/shoes/shoe-6.avif",
+    category: "Men's Shoes",
+  },
+  {
+    id: "legend-essential",
+    name: "Nike Legend Essential 3 Next Nature",
+    gender: ["men"],
+    colors: ["navy","white"],
+    sizes: ["8","9","10","11"],
+    price: 85,
+    image: "/shoes/shoe-7.avif",
+    category: "Men's Training Shoes",
+  },
+  {
+    id: "blazer-low-jumbo",
+    name: "Nike Blazer Low '77 Jumbo",
+    gender: ["women"],
+    colors: ["white","blue"],
+    sizes: ["5","6","7","8","9"],
+    price: 95,
+    image: "/shoes/shoe-8.avif",
+    category: "Women's Shoes",
+  },
+  {
+    id: "sb-janoski",
+    name: "Nike SB Zoom Janoski OG+",
+    gender: ["men","unisex"],
+    colors: ["blue","tan","black"],
+    sizes: ["7","8","9","10","11"],
+    price: 110,
+    image: "/shoes/shoe-9.avif",
+    category: "Men's Shoes",
+  },
+  {
+    id: "jordan-series",
+    name: "Jordan Series ES",
+    gender: ["men","unisex"],
+    colors: ["green","white"],
+    sizes: ["7","8","9","10","11"],
+    price: 105,
+    image: "/shoes/shoe-10.avif",
+    category: "Men's Shoes",
+  },
+  {
+    id: "vision-low",
+    name: "Nike Court Vision Low",
+    gender: ["men","women","unisex"],
+    colors: ["black","white","red"],
+    sizes: ["6","7","8","9","10","11","12"],
+    price: 75,
+    isNew: true,
+    image: "/shoes/shoe-11.avif",
+    category: "Lifestyle Shoes",
+  },
+  {
+    id: "air-force-1",
+    name: "Nike Air Force 1",
+    gender: ["men","women","unisex"],
+    colors: ["white"],
+    sizes: ["6","7","8","9","10","11","12"],
+    price: 100,
+    image: "/shoes/shoe-12.avif",
+    category: "Shoes",
+  },
+  {
+    id: "dunk-low-retro-se",
+    name: "Nike Dunk Low Retro SE",
+    gender: ["men","women"],
+    colors: ["beige"],
+    sizes: ["6","7","8","9","10"],
+    price: 125,
+    image: "/shoes/shoe-13.avif",
+    category: "Lifestyle Shoes",
+  },
+  {
+    id: "air-force-platform-2",
+    name: "Nike Air Force 1 PLTAFORM",
+    gender: ["women"],
+    colors: ["white","green"],
+    sizes: ["5","6","7","8","9"],
+    price: 110,
+    image: "/shoes/shoe-14.avif",
+    category: "Women's Shoes",
+  },
+  {
+    id: "vision-low-next",
+    name: "Nike Court Vision Low Next Nature",
+    gender: ["men","women"],
+    colors: ["black","teal"],
+    sizes: ["6","7","8","9","10","11"],
+    price: 90,
+    image: "/shoes/shoe-15.avif",
+    category: "Lifestyle Shoes",
+  },
+];
+
+export const filterOptions = {
+  gender: [
+    { label: "Men", value: "men" },
+    { label: "Women", value: "women" },
+    { label: "Unisex", value: "unisex" },
+  ],
+  size: ["5","6","7","8","9","10","11","12"].map((s) => ({ label: s, value: s })),
+  color: [
+    "white","black","red","green","yellow","blue","pink","orange","teal","navy","beige","tan"
+  ].map((c) => ({ label: c[0].toUpperCase() + c.slice(1), value: c })),
+  price: [
+    { label: "$0 - $50", value: "0-50" },
+    { label: "$50 - $100", value: "50-100" },
+    { label: "$100 - $150", value: "100-150" },
+    { label: "Over $150", value: "150+" },
+  ],
+} as const;
