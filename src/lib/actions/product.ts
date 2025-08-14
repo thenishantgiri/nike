@@ -74,12 +74,18 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
     whereAnd.push(searchCond as SQL<unknown>);
   }
 
+  const isUuid = (v?: string) =>
+    !!v && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+
   const matchIdOrSlug = (
     idCol: AnyPgColumn,
     slugCol: AnyPgColumn,
     value?: string
-  ): SQL<unknown> | undefined =>
-    value ? or(eq(idCol, value), eq(slugCol, value)) : undefined;
+  ): SQL<unknown> | undefined => {
+    if (!value) return undefined;
+    if (isUuid(value)) return eq(idCol, value) as unknown as SQL<unknown>;
+    return eq(slugCol, value) as unknown as SQL<unknown>;
+  };
 
   if (filters.category) {
     whereAnd.push(matchIdOrSlug(products.categoryId, categories.slug, filters.category)!);
@@ -101,19 +107,21 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
   }
 
   if (filters.colors && filters.colors.length) {
-    const colorsCond = or(
-      inArray(productVariants.colorId, filters.colors as string[]),
-      inArray(colors.slug, filters.colors as string[])
-    );
-    whereAnd.push(colorsCond as SQL<unknown>);
+    const uuids = filters.colors.filter(isUuid);
+    const slugs = filters.colors.filter((v) => !isUuid(v));
+    const parts: SQL<unknown>[] = [];
+    if (uuids.length) parts.push(inArray(productVariants.colorId, uuids));
+    if (slugs.length) parts.push(inArray(colors.slug, slugs));
+    if (parts.length) whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
   }
 
   if (filters.sizes && filters.sizes.length) {
-    const sizesCond = or(
-      inArray(productVariants.sizeId, filters.sizes as string[]),
-      inArray(sizes.slug, filters.sizes as string[])
-    );
-    whereAnd.push(sizesCond as SQL<unknown>);
+    const uuids = filters.sizes.filter(isUuid);
+    const slugs = filters.sizes.filter((v) => !isUuid(v));
+    const parts: SQL<unknown>[] = [];
+    if (uuids.length) parts.push(inArray(productVariants.sizeId, uuids));
+    if (slugs.length) parts.push(inArray(sizes.slug, slugs));
+    if (parts.length) whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
   }
 
   const orderByExpr =
@@ -124,6 +132,23 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
       : filters.sortBy === "oldest"
       ? asc(products.createdAt)
       : desc(products.createdAt);
+
+  const imageExprWhenColor = sql<string | null>`
+    coalesce(
+      nullif(
+        max(case when ${productImages.variantId} is not null then ${productImages.url} end),
+        ''
+      ),
+      max(case when ${productImages.isPrimary} = true then ${productImages.url} end),
+      max(${productImages.url})
+    )
+  `;
+  const imageExprDefault = sql<string | null>`
+    coalesce(
+      max(case when ${productImages.isPrimary} = true then ${productImages.url} end),
+      max(${productImages.url})
+    )
+  `;
 
   const rows = await db
     .select({
@@ -141,16 +166,7 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
       minPrice: sql<number>`min(${priceExpr})`,
       maxPrice: sql<number>`max(${priceExpr})`,
       colorCount: sql<number>`count(distinct ${productVariants.colorId})`,
-      imageUrl: sql<string | null>`
-        coalesce(
-          nullif(
-            max(case when ${productImages.variantId} is not null then ${productImages.url} end),
-            ''
-          ),
-          max(case when ${productImages.isPrimary} = true then ${productImages.url} end),
-          max(${productImages.url})
-        )
-      `,
+      imageUrl: (filters.colors && filters.colors.length ? imageExprWhenColor : imageExprDefault),
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))

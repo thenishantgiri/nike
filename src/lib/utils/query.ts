@@ -104,20 +104,54 @@ export function parseFilterParams(searchParams: URLSearchParams): DbProductFilte
     const n = Number(v);
     return Number.isFinite(n) ? n : undefined;
   };
-  const sort = (searchParams.get("sortBy") ||
-    searchParams.get("sort")) as DbProductFilters["sortBy"] | null;
+
+  const colors = getArr("colors") || getArr("color");
+  const sizes = getArr("sizes") || getArr("size");
+
+  const priceRanges = getArr("price");
+  let priceMin: number | undefined = num("priceMin");
+  let priceMax: number | undefined = num("priceMax");
+  if (priceRanges && priceRanges.length) {
+    const mins: number[] = [];
+    const maxs: number[] = [];
+    for (const r of priceRanges) {
+      if (r.endsWith("+")) {
+        const base = Number(r.slice(0, -1));
+        if (Number.isFinite(base)) mins.push(base);
+      } else {
+        const [lo, hi] = r.split("-").map((x) => Number(x));
+        if (Number.isFinite(lo)) mins.push(lo);
+        if (Number.isFinite(hi)) maxs.push(hi);
+      }
+    }
+    if (mins.length) priceMin = Math.min(...mins);
+    if (maxs.length) priceMax = Math.max(...maxs);
+  }
+
+  const sortRaw = (searchParams.get("sortBy") || searchParams.get("sort"))?.toLowerCase();
+  const sortBy: DbProductFilters["sortBy"] =
+    sortRaw === "price_asc" ? "price_asc" :
+    sortRaw === "price_desc" ? "price_desc" :
+    sortRaw === "oldest" ? "oldest" :
+    sortRaw === "newest" || sortRaw === "latest" || sortRaw === "featured" ? "latest" :
+    "latest";
+
   const page = num("page");
   const limit = num("limit");
+
+  const genderArr = getArr("gender");
+  const gender = genderArr && genderArr.length ? genderArr[0] : (searchParams.get("gender") || undefined) || undefined;
+
   return {
     search: searchParams.get("search") || undefined,
     category: searchParams.get("category") || undefined,
     brand: searchParams.get("brand") || undefined,
-    gender: searchParams.get("gender") || undefined,
-    colors: getArr("colors"),
-    sizes: getArr("sizes"),
-    priceMin: num("priceMin"),
-    priceMax: num("priceMax"),
-    sortBy: sort ?? "latest",
+    gender,
+    colors,
+    sizes,
+    priceMin,
+    priceMax,
+    sortBy,
     page: page ?? 1,
     limit: limit ?? 12,
   };
