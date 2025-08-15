@@ -77,3 +77,90 @@ export function removeParam<T extends keyof ProductQuery>(
   if (key !== "page") delete (next as ProductQuery).page;
   return next;
 }
+export type DbProductFilters = {
+  search?: string;
+  category?: string;
+  brand?: string;
+  gender?: string;
+  colors?: string[];
+  sizes?: string[];
+  priceMin?: number;
+  priceMax?: number;
+  sortBy?: "latest" | "oldest" | "price_asc" | "price_desc";
+  page?: number;
+  limit?: number;
+};
+
+export function parseFilterParams(searchParams: URLSearchParams): DbProductFilters {
+  const getArr = (k: string) => {
+    const all = searchParams.getAll(k);
+    if (all.length) return all.flatMap((v) => v.split(",")).filter(Boolean);
+    const single = searchParams.get(k);
+    return single ? single.split(",").filter(Boolean) : undefined;
+  };
+  const num = (k: string) => {
+    const v = searchParams.get(k);
+    if (!v) return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
+  const colors = getArr("colors") || getArr("color");
+  const sizes = getArr("sizes") || getArr("size");
+
+  const priceRanges = getArr("price");
+  let priceMin: number | undefined = num("priceMin");
+  let priceMax: number | undefined = num("priceMax");
+  if (priceRanges && priceRanges.length) {
+    const mins: number[] = [];
+    const maxs: number[] = [];
+    for (const r of priceRanges) {
+      if (r.endsWith("+")) {
+        const base = Number(r.slice(0, -1));
+        if (Number.isFinite(base)) mins.push(base);
+      } else {
+        const [lo, hi] = r.split("-").map((x) => Number(x));
+        if (Number.isFinite(lo)) mins.push(lo);
+        if (Number.isFinite(hi)) maxs.push(hi);
+      }
+    }
+    if (mins.length) priceMin = Math.min(...mins);
+    if (maxs.length) priceMax = Math.max(...maxs);
+  }
+
+  const sortRaw = (searchParams.get("sortBy") || searchParams.get("sort"))?.toLowerCase();
+  const sortBy: DbProductFilters["sortBy"] =
+    sortRaw === "price_asc" ? "price_asc" :
+    sortRaw === "price_desc" ? "price_desc" :
+    sortRaw === "oldest" ? "oldest" :
+    sortRaw === "newest" || sortRaw === "latest" || sortRaw === "featured" ? "latest" :
+    "latest";
+
+  const page = num("page");
+  const limit = num("limit");
+
+  const genderArr = getArr("gender");
+  const gender = genderArr && genderArr.length ? genderArr[0] : (searchParams.get("gender") || undefined) || undefined;
+
+  return {
+    search: searchParams.get("search") || undefined,
+    category: searchParams.get("category") || undefined,
+    brand: searchParams.get("brand") || undefined,
+    gender,
+    colors,
+    sizes,
+    priceMin,
+    priceMax,
+    sortBy,
+    page: page ?? 1,
+    limit: limit ?? 12,
+  };
+}
+
+export function buildProductQueryObject(filters: DbProductFilters) {
+  return {
+    ...filters,
+    page: Math.max(1, filters.page ?? 1),
+    limit: Math.max(1, Math.min(60, filters.limit ?? 12)),
+  };
+}
