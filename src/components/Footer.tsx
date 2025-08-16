@@ -198,7 +198,7 @@ export default function Footer() {
                 <span className="sr-only">X (Twitter)</span>
                 <div className="size-9 flex items-center justify-center rounded-full bg-white relative">
                   <Image
-                    src="x.svg"
+                    src="/x.svg"
                     alt="x"
                     width={18}
                     height={18}
@@ -213,7 +213,7 @@ export default function Footer() {
                 <span className="sr-only">Facebook</span>
                 <div className="size-9 flex items-center justify-center rounded-full bg-white relative">
                   <Image
-                    src="facebook.svg"
+                    src="/facebook.svg"
                     alt="x"
                     width={18}
                     height={18}
@@ -228,7 +228,7 @@ export default function Footer() {
                 <span className="sr-only">Instagram</span>
                 <div className="size-9 flex items-center justify-center rounded-full bg-white relative">
                   <Image
-                    src="instagram.svg"
+                    src="/instagram.svg"
                     alt="x"
                     width={18}
                     height={18}

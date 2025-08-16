@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { Check, ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import Image from "next/image";
+import React, { useEffect, useMemo, useState } from "react";
 
 type Variant = {
   id: string;
@@ -159,6 +159,9 @@ export default function ProductGallery({
                   className="object-cover"
                   sizes="40px"
                 />
+
+                <p className="sr-only">{v.name}</p>
+
                 {v.id === activeVariantId && (
                   <span className="absolute inset-0 flex items-center justify-center text-light-100">
                     <Check className="h-5 w-5 drop-shadow" />
