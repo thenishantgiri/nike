@@ -1,8 +1,8 @@
 import Card from "@/components/Card";
 import Filters from "@/components/Filters";
 import Sort from "@/components/Sort";
-import { parseFilterParams, buildProductQueryObject } from "@/lib/utils/query";
 import { getAllProducts } from "@/lib/actions/product";
+import { buildProductQueryObject, parseFilterParams } from "@/lib/utils/query";
 import Link from "next/link";
 
 type PageProps = {
@@ -70,7 +70,9 @@ export default async function ProductsPage({ searchParams }: PageProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="font-jost text-heading-3 text-dark-900">New ({totalCount})</h1>
+        <h1 className="font-jost text-heading-3 text-dark-900">
+          New ({totalCount})
+        </h1>
         <Sort />
       </div>
 
@@ -81,12 +83,13 @@ export default async function ProductsPage({ searchParams }: PageProps) {
           {products.length === 0 ? (
             <div className="py-20 text-center">
               <p className="font-jost text-body text-dark-700">
-                No products match your filters. Try resetting or changing your selection.
+                No products match your filters. Try resetting or changing your
+                selection.
               </p>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
                 {products.map((p) => (
                   <Link key={p.id} href={`/products/${p.id}`} className="block">
                     <Card
