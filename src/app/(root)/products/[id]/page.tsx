@@ -7,7 +7,7 @@ import {
   getProductReviews,
   getRecommendedProducts,
 } from "@/lib/actions/product";
-import { Star } from "lucide-react";
+import { Heart, ShoppingBag, Star } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -180,6 +180,17 @@ export default async function ProductDetailPage({
 
           <div className="mt-6">
             <SizePicker sizes={uniqueSizes} />
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3">
+            <button className="flex-1 min-h-12 rounded-full bg-dark-900 text-light-100 font-jost text-body-medium flex items-center justify-center gap-2">
+              <ShoppingBag className="h-5 w-5" />
+              Add to Bag
+            </button>
+            <button className="flex-1 min-h-12 rounded-full border border-light-300 bg-light-100 text-dark-900 font-jost text-body-medium flex items-center justify-center gap-2">
+              <Heart className="h-5 w-5" />
+              Add to Favorites
+            </button>
           </div>
 
           <div className="mt-8 space-y-6">
