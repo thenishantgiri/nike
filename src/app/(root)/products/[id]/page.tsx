@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import { getProduct, getProductReviews, getRecommendedProducts } from "@/lib/actions/product";
 
-type PageProps = { params: { id: string } };
+
 
 function NotFoundBlock() {
   return (
@@ -76,9 +76,14 @@ async function AlsoLikeSection({ productId }: { productId: string }) {
   );
 }
 
-export default async function ProductDetailPage({ params }: PageProps) {
-  const { id } = params;
-  const product = await getProduct(id);
+export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  let product = null as Awaited<ReturnType<typeof getProduct>>;
+  try {
+    product = await getProduct(id);
+  } catch {
+    return <NotFoundBlock />;
+  }
 
   if (!product) return <NotFoundBlock />;
 
@@ -141,7 +146,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 </CollapsibleSection>
               }
             >
-              {/* @ts-expect-error Async Server Component */}
               <ReviewsSection productId={product.id} />
             </Suspense>
           </div>
@@ -160,7 +164,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
           </section>
         }
       >
-        {/* @ts-expect-error Async Server Component */}
         <AlsoLikeSection productId={product.id} />
       </Suspense>
     </div>
