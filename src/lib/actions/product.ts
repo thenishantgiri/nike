@@ -287,6 +287,7 @@ export async function getAllProducts(
 }
 
 export async function getProduct(productId: string): Promise<PDPProduct | null> {
+  if (!/^[0-9a-fA-F-]{36}$/.test(productId)) return null;
   const [row] = await db
     .select({
       id: products.id,
