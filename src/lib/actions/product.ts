@@ -2,24 +2,24 @@
 
 import { db } from "@/lib/db";
 import {
+  brands,
+  categories,
+  colors,
+  genders,
+  productImages,
   products,
   productVariants,
-  productImages,
-  categories,
-  brands,
-  genders,
-  colors,
   sizes,
 } from "@/lib/db/schema";
 import {
   and,
-  or,
-  ilike,
-  eq,
-  inArray,
-  sql,
   asc,
   desc,
+  eq,
+  ilike,
+  inArray,
+  or,
+  sql,
   type SQL,
 } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
@@ -57,7 +57,9 @@ export type ProductFiltersInput = {
   limit?: number;
 };
 
-export async function getAllProducts(filters: ProductFiltersInput): Promise<GetAllProductsResult> {
+export async function getAllProducts(
+  filters: ProductFiltersInput
+): Promise<GetAllProductsResult> {
   const page = Math.max(1, filters.page ?? 1);
   const limit = Math.max(1, Math.min(60, filters.limit ?? 12));
   const offset = (page - 1) * limit;
@@ -75,7 +77,10 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
   }
 
   const isUuid = (v?: string) =>
-    !!v && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+    !!v &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      v
+    );
 
   const matchIdOrSlug = (
     idCol: AnyPgColumn,
@@ -88,13 +93,17 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
   };
 
   if (filters.category) {
-    whereAnd.push(matchIdOrSlug(products.categoryId, categories.slug, filters.category)!);
+    whereAnd.push(
+      matchIdOrSlug(products.categoryId, categories.slug, filters.category)!
+    );
   }
   if (filters.brand) {
     whereAnd.push(matchIdOrSlug(products.brandId, brands.slug, filters.brand)!);
   }
   if (filters.gender) {
-    whereAnd.push(matchIdOrSlug(products.genderId, genders.slug, filters.gender)!);
+    whereAnd.push(
+      matchIdOrSlug(products.genderId, genders.slug, filters.gender)!
+    );
   }
 
   const priceExpr = sql<number>`coalesce(${productVariants.salePrice}, ${productVariants.price})`;
@@ -112,7 +121,8 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
     const parts: SQL<unknown>[] = [];
     if (uuids.length) parts.push(inArray(productVariants.colorId, uuids));
     if (slugs.length) parts.push(inArray(colors.slug, slugs));
-    if (parts.length) whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
+    if (parts.length)
+      whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
   }
 
   if (filters.sizes && filters.sizes.length) {
@@ -121,7 +131,8 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
     const parts: SQL<unknown>[] = [];
     if (uuids.length) parts.push(inArray(productVariants.sizeId, uuids));
     if (slugs.length) parts.push(inArray(sizes.slug, slugs));
-    if (parts.length) whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
+    if (parts.length)
+      whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
   }
 
   const orderByExpr =
@@ -166,7 +177,10 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
       minPrice: sql<number>`min(${priceExpr})`,
       maxPrice: sql<number>`max(${priceExpr})`,
       colorCount: sql<number>`count(distinct ${productVariants.colorId})`,
-      imageUrl: (filters.colors && filters.colors.length ? imageExprWhenColor : imageExprDefault),
+      imageUrl:
+        filters.colors && filters.colors.length
+          ? imageExprWhenColor
+          : imageExprDefault,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
@@ -217,7 +231,11 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
     id: r.id,
     name: r.name,
     brand: { id: r.brandId!, name: r.brandName!, slug: r.brandSlug! },
-    category: { id: r.categoryId!, name: r.categoryName!, slug: r.categorySlug! },
+    category: {
+      id: r.categoryId!,
+      name: r.categoryName!,
+      slug: r.categorySlug!,
+    },
     gender: { id: r.genderId!, label: r.genderLabel!, slug: r.genderSlug! },
     minPrice: Number(r.minPrice ?? 0),
     maxPrice: Number(r.maxPrice ?? 0),
@@ -226,77 +244,4 @@ export async function getAllProducts(filters: ProductFiltersInput): Promise<GetA
   }));
 
   return { products: mapped, totalCount: Number(count) };
-}
-
-export type ProductDetail = {
-  id: string;
-  name: string;
-  description: string | null;
-  brand: { id: string; name: string; slug: string };
-  category: { id: string; name: string; slug: string };
-  gender: { id: string; label: string; slug: string };
-  images: { id: string; url: string; isPrimary: boolean; sortOrder: number }[];
-  variants: Array<{
-    id: string;
-    sku: string;
-    price: number;
-    salePrice: number | null;
-    inStock: number;
-    color: { id: string; name: string; slug: string; hexCode: string };
-    size: { id: string; name: string; slug: string; sortOrder: number };
-  }>;
-};
-
-export async function getProduct(productId: string): Promise<ProductDetail | null> {
-  const row = await db.query.products.findFirst({
-    where: eq(products.id, productId),
-    with: {
-      brand: true,
-      category: true,
-      gender: true,
-      images: {
-        orderBy: (img, { desc, asc }) => [desc(img.isPrimary), asc(img.sortOrder)],
-      },
-      variants: {
-        with: {
-          color: true,
-          size: true,
-        },
-      },
-    },
-  });
-  if (!row) return null;
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description ?? null,
-    brand: { id: row.brand.id, name: row.brand.name, slug: row.brand.slug },
-    category: { id: row.category.id, name: row.category.name, slug: row.category.slug },
-    gender: { id: row.gender.id, label: row.gender.label, slug: row.gender.slug },
-    images: row.images.map((i) => ({
-      id: i.id,
-      url: i.url,
-      isPrimary: i.isPrimary,
-      sortOrder: i.sortOrder,
-    })),
-    variants: row.variants.map((v) => ({
-      id: v.id,
-      sku: v.sku,
-      price: Number(v.price),
-      salePrice: v.salePrice != null ? Number(v.salePrice) : null,
-      inStock: v.inStock,
-      color: {
-        id: v.color.id,
-        name: v.color.name,
-        slug: v.color.slug,
-        hexCode: v.color.hexCode,
-      },
-      size: {
-        id: v.size.id,
-        name: v.size.name,
-        slug: v.size.slug,
-        sortOrder: v.size.sortOrder,
-      },
-    })),
-  };
 }

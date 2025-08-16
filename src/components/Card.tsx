@@ -1,12 +1,17 @@
 import Image from "next/image";
+import { ImageOff } from "lucide-react";
 
 interface CardProps {
   title: string;
   category: string;
   price: number;
-  image: string;
+  image?: string;
   colors?: number;
   badge?: string;
+}
+
+function hasImage(src?: string) {
+  return !!src && src.trim().length > 0;
 }
 
 export default function Card({
@@ -28,8 +33,15 @@ export default function Card({
           </div>
         )}
 
-        <div className="relative h-[390px] w-full rounded-lg overflow-hidden">
-          <Image src={image} alt={title} fill className="object-cover" />
+        <div className="relative h-[390px] w-full rounded-lg overflow-hidden bg-light-200 flex items-center justify-center">
+          {hasImage(image) ? (
+            <Image src={image!} alt={title} fill className="object-cover" />
+          ) : (
+            <div className="flex flex-col items-center justify-center text-dark-700 gap-2">
+              <ImageOff className="h-8 w-8" />
+              <span className="font-jost text-caption">No image</span>
+            </div>
+          )}
         </div>
       </div>
 
