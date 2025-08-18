@@ -1,13 +1,13 @@
 "use client";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { filterOptions } from "@/lib/data/products";
 import {
   parseQuery,
   ProductQuery,
-  toggleMultiValueParam,
   stringifyQuery,
+  toggleMultiValueParam,
 } from "@/lib/utils/query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function Filters() {
   const router = useRouter();
@@ -22,7 +22,10 @@ export default function Filters() {
     price: true,
   });
 
-  const query = useMemo<ProductQuery>(() => parseQuery(searchParams.toString()), [searchParams]);
+  const query = useMemo<ProductQuery>(
+    () => parseQuery(searchParams.toString()),
+    [searchParams]
+  );
 
   const update = useCallback(
     (next: ProductQuery) => {
@@ -32,7 +35,10 @@ export default function Filters() {
     [pathname, router]
   );
 
-  const onToggle = (group: "gender" | "size" | "color" | "price", value: string) => {
+  const onToggle = (
+    group: "gender" | "size" | "color" | "price",
+    value: string
+  ) => {
     const next = toggleMultiValueParam(query, group, value);
     update(next);
   };
@@ -51,32 +57,41 @@ export default function Filters() {
         {(["gender", "size", "color", "price"] as const).map((group) => (
           <div key={group} className="border-b border-light-300 pb-4">
             <button
-              className="w-full flex items-center justify-between py-2 focus:outline-none focus:ring-2 focus:ring-dark-700 rounded"
+              className="w-full flex items-center justify-between py-2 focus:outline-none rounded"
               onClick={() => setExpanded((s) => ({ ...s, [group]: !s[group] }))}
               aria-expanded={expanded[group]}
             >
               <span className="font-jost text-body-medium text-dark-900 capitalize">
                 {group}
               </span>
-              <span className="text-dark-700">{expanded[group] ? "−" : "+"}</span>
+              <span className="text-dark-700">
+                {expanded[group] ? "−" : "+"}
+              </span>
             </button>
 
             {expanded[group] && (
               <div className="mt-2 grid grid-cols-2 gap-2">
-                {filterOptions[group].map((opt: { label: string; value: string }) => {
-                  const checked = (query[group] || []).includes(opt.value);
-                  return (
-                    <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="size-4 accent-dark-900"
-                        checked={checked}
-                        onChange={() => onToggle(group, String(opt.value))}
-                      />
-                      <span className="font-jost text-caption text-dark-700">{opt.label}</span>
-                    </label>
-                  );
-                })}
+                {filterOptions[group].map(
+                  (opt: { label: string; value: string }) => {
+                    const checked = (query[group] || []).includes(opt.value);
+                    return (
+                      <label
+                        key={opt.value}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          className="size-4 accent-dark-900"
+                          checked={checked}
+                          onChange={() => onToggle(group, String(opt.value))}
+                        />
+                        <span className="font-jost text-caption text-dark-700">
+                          {opt.label}
+                        </span>
+                      </label>
+                    );
+                  }
+                )}
               </div>
             )}
           </div>
@@ -116,7 +131,9 @@ export default function Filters() {
           />
           <div className="fixed inset-y-0 left-0 w-80 bg-light-100 z-50 shadow-xl p-4 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-jost text-body-medium font-medium">Filters</h3>
+              <h3 className="font-jost text-body-medium font-medium">
+                Filters
+              </h3>
               <button
                 onClick={() => setOpen(false)}
                 className="text-dark-700 focus:outline-none focus:ring-2 focus:ring-dark-700 rounded px-2 py-1"
