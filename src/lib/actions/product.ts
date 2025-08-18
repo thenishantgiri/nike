@@ -9,9 +9,9 @@ import {
   productImages,
   products,
   productVariants,
+  reviews,
   sizes,
 } from "@/lib/db/schema";
-import { reviews } from "@/lib/db/schema";
 import {
   and,
   asc,
@@ -286,7 +286,9 @@ export async function getAllProducts(
   return { products: mapped, totalCount: Number(count) };
 }
 
-export async function getProduct(productId: string): Promise<PDPProduct | null> {
+export async function getProduct(
+  productId: string
+): Promise<PDPProduct | null> {
   if (!/^[0-9a-fA-F-]{36}$/.test(productId)) return null;
   const [row] = await db
     .select({
@@ -347,7 +349,11 @@ export async function getProduct(productId: string): Promise<PDPProduct | null> 
   const productImagesAll = imageRows
     .filter((im) => !im.variantId)
     .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((im) => ({ url: im.url, isPrimary: im.isPrimary, sortOrder: im.sortOrder }));
+    .map((im) => ({
+      url: im.url,
+      isPrimary: im.isPrimary,
+      sortOrder: im.sortOrder,
+    }));
 
   const imagesByVariant = new Map<string, PDPImage[]>();
   for (const im of imageRows) {
@@ -367,12 +373,24 @@ export async function getProduct(productId: string): Promise<PDPProduct | null> 
     price: Number(v.price),
     salePrice: v.salePrice != null ? Number(v.salePrice) : null,
     inStock: v.inStock,
-    color: { id: v.colorId!, name: v.colorName!, slug: v.colorSlug!, hexCode: v.colorHex ?? undefined },
-    size: { id: v.sizeId!, name: v.sizeName!, slug: v.sizeSlug!, sortOrder: v.sizeOrder ?? undefined },
+    color: {
+      id: v.colorId!,
+      name: v.colorName!,
+      slug: v.colorSlug!,
+      hexCode: v.colorHex ?? undefined,
+    },
+    size: {
+      id: v.sizeId!,
+      name: v.sizeName!,
+      slug: v.sizeSlug!,
+      sortOrder: v.sizeOrder ?? undefined,
+    },
     images: imagesByVariant.get(v.id) || [],
   }));
 
-  const allPrices = variants.map((v) => Number(v.salePrice ?? v.price)).filter((n) => !Number.isNaN(n));
+  const allPrices = variants
+    .map((v) => Number(v.salePrice ?? v.price))
+    .filter((n) => !Number.isNaN(n));
   const priceRange = {
     min: allPrices.length ? Math.min(...allPrices) : 0,
     max: allPrices.length ? Math.max(...allPrices) : 0,
@@ -384,15 +402,25 @@ export async function getProduct(productId: string): Promise<PDPProduct | null> 
     description: row.description,
     priceRange,
     brand: { id: row.brandId!, name: row.brandName!, slug: row.brandSlug! },
-    category: { id: row.categoryId!, name: row.categoryName!, slug: row.categorySlug! },
-    gender: { id: row.genderId!, label: row.genderLabel!, slug: row.genderSlug! },
+    category: {
+      id: row.categoryId!,
+      name: row.categoryName!,
+      slug: row.categorySlug!,
+    },
+    gender: {
+      id: row.genderId!,
+      label: row.genderLabel!,
+      slug: row.genderSlug!,
+    },
     variants,
     images: productImagesAll,
     defaultVariantId: row.defaultVariantId,
   };
 }
 
-export async function getProductReviews(productId: string): Promise<ReviewDTO[]> {
+export async function getProductReviews(
+  productId: string
+): Promise<ReviewDTO[]> {
   const rows = await db
     .select({
       id: reviews.id,
@@ -410,7 +438,9 @@ export async function getProductReviews(productId: string): Promise<ReviewDTO[]>
     rating: r.rating,
     title: undefined,
     content: r.comment || "",
-    createdAt: (r.createdAt as unknown as Date)?.toISOString?.() ?? new Date(r.createdAt as unknown as string).toISOString(),
+    createdAt:
+      (r.createdAt as unknown as Date)?.toISOString?.() ??
+      new Date(r.createdAt as unknown as string).toISOString(),
   }));
 
   if (mapped.length) return mapped;
@@ -435,7 +465,9 @@ export async function getProductReviews(productId: string): Promise<ReviewDTO[]>
   ];
 }
 
-export async function getRecommendedProducts(productId: string): Promise<RecommendedProduct[]> {
+export async function getRecommendedProducts(
+  productId: string
+): Promise<RecommendedProduct[]> {
   const [p] = await db
     .select({
       id: products.id,
@@ -488,6 +520,62 @@ export async function getRecommendedProducts(productId: string): Promise<Recomme
       image: r.imageUrl || null,
       category: r.categoryName || "",
     }))
-    .filter((r) => !r.image || (typeof r.image === "string" && r.image.trim().length > 0))
+    .filter(
+      (r) =>
+        !r.image || (typeof r.image === "string" && r.image.trim().length > 0)
+    )
     .slice(0, 6);
+}
+
+export async function getLatestProducts(): Promise<ProductWithAggregates[]> {
+  const rows = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      brandId: brands.id,
+      brandName: brands.name,
+      brandSlug: brands.slug,
+      categoryId: categories.id,
+      categoryName: categories.name,
+      categorySlug: categories.slug,
+      genderId: genders.id,
+      genderLabel: genders.label,
+      genderSlug: genders.slug,
+      minPrice: sql<number>`min(${productVariants.salePrice}, ${productVariants.price})`,
+      maxPrice: sql<number>`max(${productVariants.salePrice}, ${productVariants.price})`,
+      colorCount: sql<number>`count(distinct ${productVariants.colorId})`,
+      imageUrl: sql<string | null>`
+        coalesce(
+          max(case when ${productImages.isPrimary} = true then ${productImages.url} end),
+          max(${productImages.url})
+        )
+      `,
+    })
+    .from(products)
+    .leftJoin(brands, eq(products.brandId, brands.id))
+    .leftJoin(categories, eq(products.categoryId, categories.id))
+    .leftJoin(genders, eq(products.genderId, genders.id))
+    .leftJoin(productVariants, eq(productVariants.productId, products.id))
+    .leftJoin(colors, eq(colors.id, productVariants.colorId))
+    .leftJoin(sizes, eq(sizes.id, productVariants.sizeId))
+    .leftJoin(productImages, eq(productImages.productId, products.id))
+    .where(eq(products.isPublished, true))
+    .orderBy(desc(products.createdAt))
+    .limit(6);
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    brand: { id: r.brandId!, name: r.brandName!, slug: r.brandSlug! },
+    category: {
+      id: r.categoryId!,
+      name: r.categoryName!,
+      slug: r.categorySlug!,
+    },
+    gender: { id: r.genderId!, label: r.genderLabel!, slug: r.genderSlug! },
+    minPrice: Number(r.minPrice ?? 0),
+    maxPrice: Number(r.maxPrice ?? 0),
+    colorCount: Number(r.colorCount ?? 0),
+    imageUrl: r.imageUrl ?? null,
+  }));
 }
