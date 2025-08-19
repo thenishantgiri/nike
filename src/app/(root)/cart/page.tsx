@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import CartHydrator from "@/components/cart/CartHydrator";
 import CartItemRow from "@/components/cart/CartItemRow";
 import CartSummary from "@/components/cart/CartSummary";
