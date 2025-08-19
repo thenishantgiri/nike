@@ -3,12 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useCart } from "@/store/cart.store";
 
 interface NavbarProps {
   cartItemCount?: number;
 }
 
 export default function Navbar({ cartItemCount = 2 }: NavbarProps) {
+  const count = useCart((s) => s.cart.count) ?? cartItemCount;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
@@ -79,11 +81,11 @@ export default function Navbar({ cartItemCount = 2 }: NavbarProps) {
             </button>
             <span className="font-jost text-body">Search</span>
 
-            <button className="text-dark-900 hover:text-dark-700 flex items-center space-x-1">
+            <Link href="/cart" className="text-dark-900 hover:text-dark-700 flex items-center space-x-1">
               <span className="font-jost text-body">
-                My Cart ({cartItemCount})
+                My Cart ({count})
               </span>
-            </button>
+            </Link>
           </div>
 
           <div className="md:hidden">
@@ -150,12 +152,12 @@ export default function Navbar({ cartItemCount = 2 }: NavbarProps) {
               >
                 Search
               </a>
-              <a
-                href="#"
+              <Link
+                href="/cart"
                 className="block px-3 py-2 text-dark-900 font-jost text-body"
               >
-                My Cart ({cartItemCount})
-              </a>
+                My Cart ({count})
+              </Link>
             </div>
           </div>
         </div>

@@ -1,13 +1,12 @@
 import Card from "@/components/Card";
 import CollapsibleSection from "@/components/CollapsibleSection";
-import ProductGallery from "@/components/ProductGallery";
-import SizePicker from "@/components/SizePicker";
+import ProductPurchaseShell from "@/components/product/ProductPurchaseShell";
 import {
   getProduct,
   getProductReviews,
   getRecommendedProducts,
 } from "@/lib/actions/product";
-import { Heart, ShoppingBag, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -138,87 +137,73 @@ export default async function ProductDetailPage({
     return (parse(a) || 0) - (parse(b) || 0);
   });
 
+  const variantsMeta = product.variants.map((v) => ({
+    id: v.id,
+    colorName: v.color.name,
+    sizeName: v.size.name,
+  }));
+
   const minPrice = product.priceRange.min;
   const maxPrice = product.priceRange.max;
   const samePrice = minPrice === maxPrice;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {galleryVariants.length ? (
-          <ProductGallery
-            variants={galleryVariants}
-            initialVariantId={
-              product.defaultVariantId || galleryVariants[0]?.id
-            }
-          />
-        ) : (
-          <section aria-label="Product media" className="w-full">
-            <div className="relative w-full rounded-xl bg-light-200 flex items-center justify-center aspect-[4/3]">
-              <p className="font-jost text-caption text-dark-700">
-                No images available
+      <ProductPurchaseShell
+        galleryVariants={galleryVariants}
+        uniqueSizes={uniqueSizes}
+        productVariants={variantsMeta}
+        initialVariantId={product.defaultVariantId || galleryVariants[0]?.id}
+        RightTop={
+          <>
+            <h1 className="font-jost text-heading-3 text-dark-900">
+              {product.name}
+            </h1>
+            <p className="font-jost text-caption text-dark-700 mt-1">
+              {product.gender.label}&nbsp;•&nbsp;{product.category.name}
+            </p>
+
+            <div className="mt-4 flex items-center gap-3">
+              <p className="font-jost text-lead text-dark-900">
+                {samePrice
+                  ? `$${minPrice.toFixed(2)}`
+                  : `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`}
               </p>
             </div>
-          </section>
-        )}
+          </>
+        }
+        RightBottom={
+          <>
+            <div className="mt-8 space-y-6">
+              <CollapsibleSection title="Product Details" defaultOpen>
+                <p>{product.description || "No description provided."}</p>
+              </CollapsibleSection>
 
-        <section aria-label="Product information" className="w-full">
-          <h1 className="font-jost text-heading-3 text-dark-900">
-            {product.name}
-          </h1>
-          <p className="font-jost text-caption text-dark-700 mt-1">
-            {product.gender.label}&nbsp;•&nbsp;{product.category.name}
-          </p>
-
-          <div className="mt-4 flex items-center gap-3">
-            <p className="font-jost text-lead text-dark-900">
-              {samePrice
-                ? `$${minPrice.toFixed(2)}`
-                : `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`}
-            </p>
-          </div>
-
-          <div className="mt-6">
-            <SizePicker sizes={uniqueSizes} />
-          </div>
-
-          <div className="mt-6 flex flex-col gap-3">
-            <button className="flex-1 min-h-12 rounded-full bg-dark-900 text-light-100 font-jost text-body-medium flex items-center justify-center gap-2">
-              <ShoppingBag className="h-5 w-5" />
-              Add to Bag
-            </button>
-            <button className="flex-1 min-h-12 rounded-full border border-light-300 bg-light-100 text-dark-900 font-jost text-body-medium flex items-center justify-center gap-2">
-              <Heart className="h-5 w-5" />
-              Add to Favorites
-            </button>
-          </div>
-
-          <div className="mt-8 space-y-6">
-            <CollapsibleSection title="Product Details" defaultOpen>
-              <p>{product.description || "No description provided."}</p>
-            </CollapsibleSection>
-
-            <CollapsibleSection title="Shipping" defaultOpen>
-              <p>
-                We offer free shipping on all orders over $100. For orders under
-                $100, shipping is a flat rate of $10.
-              </p>
-
-              {minPrice >= 100 ? (
-                <p className="mt-2 font-jost text-caption text-dark-700">
-                  This product is eligible for{" "}
-                  <span className="font-bold text-green-500">
-                    free shipping
-                  </span>
-                  .
+              <CollapsibleSection title="Shipping" defaultOpen>
+                <p>
+                  We offer free shipping on all orders over $100. For orders
+                  under $100, shipping is a flat rate of $10.
                 </p>
-              ) : (
-                <p className="mt-2 font-jost text-caption text-dark-700">
-                  This product is not eligible for{" "}
-                  <span className="font-bold text-red-500">free shipping</span>.
-                </p>
-              )}
-            </CollapsibleSection>
+
+                {minPrice >= 100 ? (
+                  <p className="mt-2 font-jost text-caption text-dark-700">
+                    This product is eligible for{" "}
+                    <span className="font-bold text-green-500">
+                      free shipping
+                    </span>
+                    .
+                  </p>
+                ) : (
+                  <p className="mt-2 font-jost text-caption text-dark-700">
+                    This product is not eligible for{" "}
+                    <span className="font-bold text-red-500">
+                      free shipping
+                    </span>
+                    .
+                  </p>
+                )}
+              </CollapsibleSection>
+            </div>
 
             <Suspense
               fallback={
@@ -230,9 +215,9 @@ export default async function ProductDetailPage({
             >
               <ReviewsSection productId={product.id} />
             </Suspense>
-          </div>
-        </section>
-      </div>
+          </>
+        }
+      />
 
       <Suspense
         fallback={

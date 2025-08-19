@@ -13,6 +13,8 @@ type Variant = {
 type ProductGalleryProps = {
   variants: Variant[];
   initialVariantId?: string;
+  activeVariantId?: string;
+  onVariantChange?: (variantId: string) => void;
 };
 
 function isValidSrc(src: string | undefined) {
@@ -23,6 +25,8 @@ function isValidSrc(src: string | undefined) {
 export default function ProductGallery({
   variants,
   initialVariantId,
+  activeVariantId,
+  onVariantChange,
 }: ProductGalleryProps) {
   const validVariants = useMemo(
     () =>
@@ -35,11 +39,17 @@ export default function ProductGallery({
     [variants]
   );
 
-  const [activeVariantId, setActiveVariantId] = useState<string | undefined>(
+  const [uncontrolledActiveVariantId, setUncontrolledActiveVariantId] = useState<string | undefined>(
     () => initialVariantId || validVariants[0]?.id
   );
+  const controlled = typeof activeVariantId !== "undefined";
+  const currentActiveVariantId = controlled ? activeVariantId : uncontrolledActiveVariantId;
+  const setActiveVariantIdAll = (id: string) => {
+    if (!controlled) setUncontrolledActiveVariantId(id);
+    onVariantChange?.(id);
+  };
   const activeVariant =
-    validVariants.find((v) => v.id === activeVariantId) || validVariants[0];
+    validVariants.find((v) => v.id === currentActiveVariantId) || validVariants[0];
 
   const [activeIndex, setActiveIndex] = useState(0);
   const mainImgs = activeVariant?.images || [];
@@ -47,7 +57,7 @@ export default function ProductGallery({
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [activeVariantId]);
+  }, [currentActiveVariantId]);
 
   const onKeyDownMain = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!mainImgs.length) return;
@@ -143,10 +153,10 @@ export default function ProductGallery({
             {validVariants.map((v) => (
               <button
                 key={v.id}
-                aria-pressed={v.id === activeVariantId}
-                onClick={() => setActiveVariantId(v.id)}
+                aria-pressed={v.id === currentActiveVariantId}
+                onClick={() => setActiveVariantIdAll(v.id)}
                 className={`relative h-10 w-10 rounded-full border overflow-hidden ${
-                  v.id === activeVariantId
+                  v.id === currentActiveVariantId
                     ? "border-dark-900"
                     : "border-light-300 hover:border-dark-700"
                 } focus:outline-none focus:ring-2 focus:ring-dark-900`}
@@ -162,7 +172,7 @@ export default function ProductGallery({
 
                 <p className="sr-only">{v.name}</p>
 
-                {v.id === activeVariantId && (
+                {v.id === currentActiveVariantId && (
                   <span className="absolute inset-0 flex items-center justify-center text-light-100">
                     <Check className="h-5 w-5 drop-shadow" />
                   </span>
