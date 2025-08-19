@@ -1,6 +1,6 @@
 import Card from "@/components/Card";
 import CollapsibleSection from "@/components/CollapsibleSection";
-import ProductPurchaseSection from "@/components/product/ProductPurchaseSection";
+import ProductPurchaseShell from "@/components/product/ProductPurchaseShell";
 import {
   getProduct,
   getProductReviews,
@@ -149,57 +149,61 @@ export default async function ProductDetailPage({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ProductPurchaseSection
-          galleryVariants={galleryVariants}
-          uniqueSizes={uniqueSizes}
-          productVariants={variantsMeta}
-          initialVariantId={product.defaultVariantId || galleryVariants[0]?.id}
-        />
-
-        <section aria-label="Product information" className="w-full">
-          <h1 className="font-jost text-heading-3 text-dark-900">
-            {product.name}
-          </h1>
-          <p className="font-jost text-caption text-dark-700 mt-1">
-            {product.gender.label}&nbsp;•&nbsp;{product.category.name}
-          </p>
-
-          <div className="mt-4 flex items-center gap-3">
-            <p className="font-jost text-lead text-dark-900">
-              {samePrice
-                ? `$${minPrice.toFixed(2)}`
-                : `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`}
+      <ProductPurchaseShell
+        galleryVariants={galleryVariants}
+        uniqueSizes={uniqueSizes}
+        productVariants={variantsMeta}
+        initialVariantId={product.defaultVariantId || galleryVariants[0]?.id}
+        RightTop={
+          <>
+            <h1 className="font-jost text-heading-3 text-dark-900">
+              {product.name}
+            </h1>
+            <p className="font-jost text-caption text-dark-700 mt-1">
+              {product.gender.label}&nbsp;•&nbsp;{product.category.name}
             </p>
-          </div>
 
-
-          <div className="mt-8 space-y-6">
-            <CollapsibleSection title="Product Details" defaultOpen>
-              <p>{product.description || "No description provided."}</p>
-            </CollapsibleSection>
-
-            <CollapsibleSection title="Shipping" defaultOpen>
-              <p>
-                We offer free shipping on all orders over $100. For orders under
-                $100, shipping is a flat rate of $10.
+            <div className="mt-4 flex items-center gap-3">
+              <p className="font-jost text-lead text-dark-900">
+                {samePrice
+                  ? `$${minPrice.toFixed(2)}`
+                  : `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`}
               </p>
+            </div>
+          </>
+        }
+        RightBottom={
+          <>
+            <div className="mt-8 space-y-6">
+              <CollapsibleSection title="Product Details" defaultOpen>
+                <p>{product.description || "No description provided."}</p>
+              </CollapsibleSection>
 
-              {minPrice >= 100 ? (
-                <p className="mt-2 font-jost text-caption text-dark-700">
-                  This product is eligible for{" "}
-                  <span className="font-bold text-green-500">
-                    free shipping
-                  </span>
-                  .
+              <CollapsibleSection title="Shipping" defaultOpen>
+                <p>
+                  We offer free shipping on all orders over $100. For orders
+                  under $100, shipping is a flat rate of $10.
                 </p>
-              ) : (
-                <p className="mt-2 font-jost text-caption text-dark-700">
-                  This product is not eligible for{" "}
-                  <span className="font-bold text-red-500">free shipping</span>.
-                </p>
-              )}
-            </CollapsibleSection>
+
+                {minPrice >= 100 ? (
+                  <p className="mt-2 font-jost text-caption text-dark-700">
+                    This product is eligible for{" "}
+                    <span className="font-bold text-green-500">
+                      free shipping
+                    </span>
+                    .
+                  </p>
+                ) : (
+                  <p className="mt-2 font-jost text-caption text-dark-700">
+                    This product is not eligible for{" "}
+                    <span className="font-bold text-red-500">
+                      free shipping
+                    </span>
+                    .
+                  </p>
+                )}
+              </CollapsibleSection>
+            </div>
 
             <Suspense
               fallback={
@@ -211,9 +215,9 @@ export default async function ProductDetailPage({
             >
               <ReviewsSection productId={product.id} />
             </Suspense>
-          </div>
-        </section>
-      </div>
+          </>
+        }
+      />
 
       <Suspense
         fallback={
