@@ -11,13 +11,15 @@ export default async function CartPage() {
   const user = await getCurrentUser();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
       <CartHydrator initial={cart} />
       <h1 className="font-jost text-heading-3 text-dark-900 mb-6">Cart</h1>
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <div>
           {cart.items.length === 0 ? (
-            <div className="text-dark-700 font-jost text-body">Your cart is empty.</div>
+            <div className="text-dark-700 font-jost text-body">
+              Your cart is empty.
+            </div>
           ) : (
             cart.items.map((it) => <CartItemRow key={it.id} item={it} />)
           )}
