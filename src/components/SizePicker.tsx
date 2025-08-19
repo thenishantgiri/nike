@@ -5,10 +5,14 @@ import React, { useState } from "react";
 type SizePickerProps = {
   sizes: string[];
   label?: string;
+  value?: string | null;
+  onChange?: (size: string) => void;
 };
 
-export default function SizePicker({ sizes, label = "Select Size" }: SizePickerProps) {
+export default function SizePicker({ sizes, label = "Select Size", value, onChange }: SizePickerProps) {
   const [selected, setSelected] = useState<string | null>(null);
+  const isControlled = typeof value !== "undefined";
+  const current = isControlled ? value : selected;
 
   return (
     <section aria-label="Size selection" className="w-full">
@@ -20,13 +24,16 @@ export default function SizePicker({ sizes, label = "Select Size" }: SizePickerP
       </div>
       <div className="grid grid-cols-5 gap-3" role="listbox" aria-label="Sizes">
         {sizes.map((s) => {
-          const isSelected = selected === s;
+          const isSelected = current === s;
           return (
             <button
               key={s}
               role="option"
               aria-selected={isSelected}
-              onClick={() => setSelected(s)}
+              onClick={() => {
+                if (!isControlled) setSelected(s);
+                onChange?.(s);
+              }}
               className={`h-12 rounded-md border font-jost text-body-medium ${
                 isSelected
                   ? "border-dark-900"
