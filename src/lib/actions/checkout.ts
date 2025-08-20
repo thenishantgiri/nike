@@ -25,7 +25,8 @@ export async function createStripeCheckoutSession(cartId: string) {
   }
 
   const line_items = cart.items.map((it) => {
-    const img = it.imageUrl && it.imageUrl.startsWith("http") ? it.imageUrl : undefined;
+    const img =
+      it.imageUrl && it.imageUrl.startsWith("https://") ? it.imageUrl : undefined;
     return {
       quantity: it.quantity,
       price_data: {
