@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useCart } from "@/store/cart.store";
+import { useRouter } from "next/navigation";
 
 export default function CartSummary({ isAuthed }: { isAuthed: boolean }) {
   const cart = useCart((s) => s.cart);
@@ -11,7 +11,7 @@ export default function CartSummary({ isAuthed }: { isAuthed: boolean }) {
   const total = cart.subtotal + shipping;
 
   function onCheckout() {
-    if (!isAuthed) router.push("/auth");
+    if (!isAuthed) router.push("/sign-in");
     else router.push("/checkout");
   }
 
