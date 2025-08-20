@@ -1,18 +1,21 @@
 "use client";
 
-import { useCart } from "@/store/cart.store";
-import { useState, useTransition } from "react";
 import { createStripeCheckoutSession } from "@/lib/actions/checkout";
+import { useCart } from "@/store/cart.store";
 import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
-
-export default function CartSummary({ isAuthed: _isAuthed }: { isAuthed: boolean }) {
+export default function CartSummary({
+  isAuthed: _isAuthed,
+}: {
+  isAuthed: boolean;
+}) {
   const cart = useCart((s) => s.cart);
   const [pending, startTransition] = useTransition();
   void _isAuthed;
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
+  const router = useRouter();
 
   const shipping = cart.count > 0 ? 2 : 0;
   const total = cart.subtotal + shipping;
@@ -24,6 +27,11 @@ export default function CartSummary({ isAuthed: _isAuthed }: { isAuthed: boolean
       return;
     }
 
+    if (!_isAuthed) {
+      router.push("/sign-in");
+      return;
+    }
+
     startTransition(async () => {
       const res = await createStripeCheckoutSession(cart.id as string);
       if (res?.url) {
@@ -32,7 +40,11 @@ export default function CartSummary({ isAuthed: _isAuthed }: { isAuthed: boolean
       }
       const msg = res?.error || "Failed to start checkout. Please try again.";
       setError(msg);
-      router.push(`/checkout/error?code=stripe_session_create&msg=${encodeURIComponent(msg)}`);
+      router.push(
+        `/checkout/error?code=stripe_session_create&msg=${encodeURIComponent(
+          msg
+        )}`
+      );
     });
   }
 
@@ -52,7 +64,9 @@ export default function CartSummary({ isAuthed: _isAuthed }: { isAuthed: boolean
         <span>Total</span>
         <span>${total.toFixed(2)}</span>
       </div>
-      {error ? <p className="text-red-600 font-jost text-body mt-2">{error}</p> : null}
+      {error ? (
+        <p className="text-red-600 font-jost text-body mt-2">{error}</p>
+      ) : null}
       <button
         onClick={onCheckout}
         className="mt-4 w-full bg-dark-900 text-light-100 rounded-full py-3 font-jost text-body hover:bg-dark-700 disabled:opacity-60"
