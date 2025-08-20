@@ -38,7 +38,13 @@ export default function CartSummary({
         window.location.href = res.url;
         return;
       }
-      setError(res?.error || "Failed to start checkout. Please try again.");
+      const msg = res?.error || "Failed to start checkout. Please try again.";
+      setError(msg);
+      router.push(
+        `/checkout/error?code=stripe_session_create&msg=${encodeURIComponent(
+          msg
+        )}`
+      );
     });
   }
 
