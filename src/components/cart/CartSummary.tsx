@@ -1,14 +1,21 @@
 "use client";
 
-import { useCart } from "@/store/cart.store";
-import { useState, useTransition } from "react";
 import { createStripeCheckoutSession } from "@/lib/actions/checkout";
+import { useCart } from "@/store/cart.store";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
-export default function CartSummary({ isAuthed: _isAuthed }: { isAuthed: boolean }) {
+export default function CartSummary({
+  isAuthed: _isAuthed,
+}: {
+  isAuthed: boolean;
+}) {
   const cart = useCart((s) => s.cart);
   const [pending, startTransition] = useTransition();
   void _isAuthed;
   const [error, setError] = useState<string | null>(null);
+
+  const router = useRouter();
 
   const shipping = cart.count > 0 ? 2 : 0;
   const total = cart.subtotal + shipping;
@@ -17,6 +24,11 @@ export default function CartSummary({ isAuthed: _isAuthed }: { isAuthed: boolean
     setError(null);
     if (!cart.id || cart.count === 0) {
       setError("Your cart is empty.");
+      return;
+    }
+
+    if (!_isAuthed) {
+      router.push("/sign-in");
       return;
     }
 
@@ -46,7 +58,9 @@ export default function CartSummary({ isAuthed: _isAuthed }: { isAuthed: boolean
         <span>Total</span>
         <span>${total.toFixed(2)}</span>
       </div>
-      {error ? <p className="text-red-600 font-jost text-body mt-2">{error}</p> : null}
+      {error ? (
+        <p className="text-red-600 font-jost text-body mt-2">{error}</p>
+      ) : null}
       <button
         onClick={onCheckout}
         className="mt-4 w-full bg-dark-900 text-light-100 rounded-full py-3 font-jost text-body hover:bg-dark-700 disabled:opacity-60"
