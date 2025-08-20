@@ -6,6 +6,10 @@ import { orders, orderItems, NewOrder, NewOrderItem } from "@/lib/db/schema/orde
 import { payments, NewPayment } from "@/lib/db/schema/payments";
 import { cartItems, carts } from "@/lib/db/schema/carts";
 import { productVariants } from "@/lib/db/schema/variants";
+import { products } from "@/lib/db/schema/products";
+import { productImages } from "@/lib/db/schema/product-images";
+import { colors } from "@/lib/db/schema/filters/colors";
+import { sizes } from "@/lib/db/schema/filters/sizes";
 import { addresses, NewAddress } from "@/lib/db/schema/addresses";
 import { getStripe } from "@/lib/stripe/client";
 import Stripe from "stripe";
@@ -146,22 +150,108 @@ export async function getOrder(orderId: string) {
   const items = await db
     .select({
       id: orderItems.id,
-      productVariantId: orderItems.productVariantId,
       quantity: orderItems.quantity,
-      priceAtPurchase: orderItems.priceAtPurchase,
+      unitPrice: orderItems.priceAtPurchase,
+      variantId: productVariants.id,
+      sku: productVariants.sku,
+      productId: products.id,
+      productName: products.name,
+      sizeName: sizes.name,
+      colorName: colors.name,
+      colorHex: colors.hexCode,
+      imageUrl: productImages.url,
     })
     .from(orderItems)
+    .leftJoin(productVariants, eq(orderItems.productVariantId, productVariants.id))
+    .leftJoin(products, eq(productVariants.productId, products.id))
+    .leftJoin(sizes, eq(productVariants.sizeId, sizes.id))
+    .leftJoin(colors, eq(productVariants.colorId, colors.id))
+    .leftJoin(productImages, eq(productImages.variantId, productVariants.id))
     .where(eq(orderItems.orderId, orderId));
+
+  const payment = (
+    await db
+      .select({
+        method: payments.method,
+        status: payments.status,
+        transactionId: payments.transactionId,
+        paidAt: payments.paidAt,
+      })
+      .from(payments)
+      .where(eq(payments.orderId, orderId))
+      .limit(1)
+  )[0];
+
+  const shipping =
+    ord.shippingAddressId
+      ? (
+          await db
+            .select()
+            .from(addresses)
+            .where(eq(addresses.id, ord.shippingAddressId as string))
+            .limit(1)
+        )[0]
+      : null;
+
+  const billing =
+    ord.billingAddressId
+      ? (
+          await db
+            .select()
+            .from(addresses)
+            .where(eq(addresses.id, ord.billingAddressId as string))
+            .limit(1)
+        )[0]
+      : null;
 
   return {
     id: ord.id as string,
     status: ord.status as string,
     totalAmount: Number(ord.totalAmount),
-    items: items.map((i) => ({
-      id: i.id as string,
-      productVariantId: i.productVariantId as string,
-      quantity: i.quantity,
-      priceAtPurchase: Number(i.priceAtPurchase),
-    })),
+    items: items.map((i) => {
+      const unit = Number(i.unitPrice);
+      return {
+        id: i.id as string,
+        variantId: i.variantId as string,
+        sku: i.sku as string,
+        product: { id: i.productId as string, name: i.productName as string },
+        size: i.sizeName as string | null,
+        color: { name: (i.colorName as string) || null, hex: (i.colorHex as string) || null },
+        imageUrl: (i.imageUrl as string) || null,
+        quantity: i.quantity,
+        unitPrice: unit,
+        lineTotal: unit * i.quantity,
+      };
+    }),
+    addresses: {
+      shipping: shipping
+        ? {
+            line1: shipping.line1,
+            line2: shipping.line2,
+            city: shipping.city,
+            state: shipping.state,
+            postalCode: shipping.postalCode,
+            country: shipping.country,
+          }
+        : null,
+      billing: billing
+        ? {
+            line1: billing.line1,
+            line2: billing.line2,
+            city: billing.city,
+            state: billing.state,
+            postalCode: billing.postalCode,
+            country: billing.country,
+          }
+        : null,
+    },
+    payment: payment
+      ? {
+          method: payment.method as string,
+          status: payment.status as string,
+          transactionLast8: payment.transactionId ? String(payment.transactionId).slice(-8) : null,
+          paidAt: payment.paidAt ? new Date(payment.paidAt as unknown as string).toISOString() : null,
+        }
+      : null,
   };
 }

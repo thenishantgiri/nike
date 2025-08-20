@@ -3,12 +3,16 @@
 import { useCart } from "@/store/cart.store";
 import { useState, useTransition } from "react";
 import { createStripeCheckoutSession } from "@/lib/actions/checkout";
+import { useRouter } from "next/navigation";
+
 
 export default function CartSummary({ isAuthed: _isAuthed }: { isAuthed: boolean }) {
   const cart = useCart((s) => s.cart);
   const [pending, startTransition] = useTransition();
   void _isAuthed;
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
 
   const shipping = cart.count > 0 ? 2 : 0;
   const total = cart.subtotal + shipping;
@@ -26,7 +30,9 @@ export default function CartSummary({ isAuthed: _isAuthed }: { isAuthed: boolean
         window.location.href = res.url;
         return;
       }
-      setError(res?.error || "Failed to start checkout. Please try again.");
+      const msg = res?.error || "Failed to start checkout. Please try again.";
+      setError(msg);
+      router.push(`/checkout/error?code=stripe_session_create&msg=${encodeURIComponent(msg)}`);
     });
   }
 
