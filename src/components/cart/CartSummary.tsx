@@ -21,14 +21,12 @@ export default function CartSummary({ isAuthed: _isAuthed }: { isAuthed: boolean
     }
 
     startTransition(async () => {
-      try {
-        const res = await createStripeCheckoutSession(cart.id as string);
-        if (res?.url) {
-          window.location.href = res.url;
-        }
-      } catch {
-        setError("Failed to start checkout. Please try again.");
+      const res = await createStripeCheckoutSession(cart.id as string);
+      if (res?.url) {
+        window.location.href = res.url;
+        return;
       }
+      setError(res?.error || "Failed to start checkout. Please try again.");
     });
   }
 
