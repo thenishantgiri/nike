@@ -1,5 +1,6 @@
 import { ImageOff } from "lucide-react";
 import Image from "next/image";
+import { formatCurrency } from "@/lib/utils/currency";
 
 interface CardProps {
   title: string;
@@ -55,7 +56,7 @@ export default function Card({
 
         <div className="flex items-center justify-between">
           <p className="font-jost text-body-medium font-medium text-dark-900">
-            ${price.toFixed(2)}
+            {formatCurrency(price)}
           </p>
 
           {colors > 1 && (

@@ -9,6 +9,7 @@ import {
 import { Star } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { formatCurrency } from "@/lib/utils/currency";
 
 function NotFoundBlock() {
   return (
@@ -166,8 +167,8 @@ export default async function ProductDetailPage({
             <div className="mt-4 flex items-center gap-3">
               <p className="font-jost text-lead text-dark-900">
                 {samePrice
-                  ? `$${minPrice.toFixed(2)}`
-                  : `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`}
+                  ? formatCurrency(minPrice)
+                  : `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`}
               </p>
             </div>
           </>
