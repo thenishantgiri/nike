@@ -13,6 +13,8 @@ export const orders = pgTable('orders', {
   userId: uuid('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   status: text('status', { enum: orderStatusEnum }).notNull().default('pending'),
   totalAmount: numeric('total_amount', { precision: 10, scale: 2 }).notNull(),
+  currency: text('currency').notNull().default('USD'),
+  shippingAmount: numeric('shipping_amount', { precision: 10, scale: 2 }).notNull().default('0'),
   shippingAddressId: uuid('shipping_address_id').notNull().references(() => addresses.id),
   billingAddressId: uuid('billing_address_id').notNull().references(() => addresses.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),

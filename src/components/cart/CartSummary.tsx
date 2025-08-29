@@ -4,6 +4,8 @@ import { createStripeCheckoutSession } from "@/lib/actions/checkout";
 import { useCart } from "@/store/cart.store";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { formatCurrency } from "@/lib/utils/currency";
+import { getShippingFlatAmountClient } from "@/lib/utils/shipping";
 
 export default function CartSummary({
   isAuthed: _isAuthed,
@@ -17,7 +19,8 @@ export default function CartSummary({
 
   const router = useRouter();
 
-  const shipping = cart.count > 0 ? 2 : 0;
+  const configuredShipping = getShippingFlatAmountClient();
+  const shipping = cart.count > 0 ? configuredShipping : 0;
   const total = cart.subtotal + shipping;
 
   function onCheckout() {
@@ -53,28 +56,43 @@ export default function CartSummary({
       <h2 className="font-jost text-heading-3 text-dark-900 mb-4">Summary</h2>
       <div className="flex justify-between py-2 text-dark-900 font-jost text-body">
         <span>Subtotal</span>
-        <span>${cart.subtotal.toFixed(2)}</span>
+        <span>{formatCurrency(cart.subtotal)}</span>
       </div>
       <div className="flex justify-between py-2 text-dark-900 font-jost text-body">
         <span>Estimated Delivery &amp; Handling</span>
-        <span>${shipping.toFixed(2)}</span>
+        <span>{formatCurrency(shipping)}</span>
       </div>
       <hr className="my-3 border-light-300" />
       <div className="flex justify-between py-2 text-dark-900 font-jost text-body font-medium">
         <span>Total</span>
-        <span>${total.toFixed(2)}</span>
+        <span>{formatCurrency(total)}</span>
       </div>
       {error ? (
         <p className="text-red-600 font-jost text-body mt-2">{error}</p>
       ) : null}
-      <button
-        onClick={onCheckout}
-        className="mt-4 w-full bg-dark-900 text-light-100 rounded-full py-3 font-jost text-body hover:bg-dark-700 disabled:opacity-60"
-        type="button"
-        disabled={pending}
-      >
-        {pending ? "Redirecting..." : "Proceed to Checkout"}
-      </button>
+      <div className="flex flex-col gap-3 mt-4">
+        <button
+          onClick={onCheckout}
+          className="w-full bg-dark-900 text-light-100 rounded-full py-3 font-jost text-body hover:bg-dark-700 disabled:opacity-60"
+          type="button"
+          disabled={pending}
+        >
+          {pending ? "Redirecting..." : "Pay with Card (Stripe)"}
+        </button>
+        <button
+          onClick={() => {
+            if (!cart.id || cart.count === 0) {
+              setError("Your cart is empty.");
+              return;
+            }
+            router.push("/checkout");
+          }}
+          className="w-full border border-dark-900 text-dark-900 rounded-full py-3 font-jost text-body hover:bg-light-200"
+          type="button"
+        >
+          Cash on Delivery
+        </button>
+      </div>
     </aside>
   );
 }

@@ -15,6 +15,7 @@ export const payments = pgTable("payments", {
   status: text("status", { enum: paymentStatusEnum })
     .notNull()
     .default("initiated"),
+  currency: text("currency").notNull().default("USD"),
   paidAt: timestamp("paid_at"),
   transactionId: text("transaction_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -1,6 +1,7 @@
 "use client";
 
 import type { UICartItem } from "@/lib/actions/cart";
+import { formatCurrency } from "@/lib/utils/currency";
 import { useCart } from "@/store/cart.store";
 import { Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -44,6 +45,7 @@ export default function CartItemRow({ item }: { item: UICartItem }) {
             <Quantity
               value={item.quantity}
               onChange={(v) => updateQty(item.id, v)}
+              onRemove={() => remove(item.id)}
             />
           </div>
         </div>
@@ -51,16 +53,18 @@ export default function CartItemRow({ item }: { item: UICartItem }) {
 
       <div className="flex items-center gap-6">
         <div className="text-dark-900 font-jost text-body font-medium whitespace-nowrap">
-          ${item.price.toFixed(2)}
+          {formatCurrency(item.price)}
         </div>
-        <button
-          className="text-red hover:text-dark-900"
-          aria-label="Remove"
-          onClick={() => remove(item.id)}
-          type="button"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        {item.quantity > 1 ? (
+          <button
+            className="text-red hover:text-dark-900"
+            aria-label="Remove"
+            onClick={() => remove(item.id)}
+            type="button"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        ) : null}
       </div>
     </div>
   );

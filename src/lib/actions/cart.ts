@@ -87,7 +87,7 @@ export async function getCart(): Promise<UICart> {
       gender: genders.label,
       size: sizes.name,
       color: colors.name,
-      price: productVariants.price,
+      price: sql<number>`coalesce(${productVariants.salePrice}, ${productVariants.price})`,
       imageUrl: productImages.url,
     })
     .from(cartItems)
@@ -211,4 +211,50 @@ export async function clearCart() {
   await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
   revalidatePath("/cart");
   return getCart();
+}
+
+export async function validateCartStock(): Promise<
+  | { ok: true }
+  | {
+      ok: false;
+      items: Array<{
+        productVariantId: string;
+        requested: number;
+        available: number;
+        name: string;
+        sku?: string | null;
+      }>;
+    }
+> {
+  const { userId, guestId } = await resolveSession();
+  const where = userId ? eq(carts.userId, userId) : eq(carts.guestId, guestId!);
+  const found = await db.select().from(carts).where(where).limit(1);
+  if (!found.length) return { ok: true };
+  const cartId = found[0].id as string;
+
+  const rows = await db
+    .select({
+      variantId: productVariants.id,
+      sku: productVariants.sku,
+      name: products.name,
+      requested: cartItems.quantity,
+      available: productVariants.inStock,
+    })
+    .from(cartItems)
+    .innerJoin(productVariants, eq(productVariants.id, cartItems.productVariantId))
+    .innerJoin(products, eq(products.id, productVariants.productId))
+    .where(eq(cartItems.cartId, cartId));
+
+  const insufficient = rows
+    .filter((r) => (r.requested ?? 0) > (r.available ?? 0))
+    .map((r) => ({
+      productVariantId: r.variantId as string,
+      requested: r.requested,
+      available: r.available ?? 0,
+      name: r.name,
+      sku: r.sku,
+    }));
+
+  if (insufficient.length) return { ok: false, items: insufficient };
+  return { ok: true };
 }

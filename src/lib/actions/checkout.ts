@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { getStripe } from "@/lib/stripe/client";
-import { getCart } from "@/lib/actions/cart";
+import { getCart, validateCartStock } from "@/lib/actions/cart";
 import { getCurrentUser, mergeGuestCartWithUserCart } from "@/lib/auth/actions";
+import { getStripe } from "@/lib/stripe/client";
+import type Stripe from "stripe";
+import { revalidatePath } from "next/cache";
 
 function toCents(amount: number) {
   return Math.max(0, Math.round(amount * 100));
@@ -13,6 +14,19 @@ export async function createStripeCheckoutSession(
   cartId: string
 ): Promise<{ url?: string; error?: string }> {
   try {
+    const CURRENCY = (process.env.STRIPE_CURRENCY || "usd").toLowerCase();
+    const SHIP_COUNTRIES = (process.env.STRIPE_SHIP_COUNTRIES || "US,CA")
+      .split(",")
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean);
+    const allowedCountries =
+      SHIP_COUNTRIES as Stripe.Checkout.SessionCreateParams.ShippingAddressCollection.AllowedCountry[];
+
+    const paymentMethodTypes = (process.env.STRIPE_PAYMENT_METHOD_TYPES || "card")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean) as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
+
     const user = await getCurrentUser();
     if (user) {
       await mergeGuestCartWithUserCart(user.id as string);
@@ -27,13 +41,23 @@ export async function createStripeCheckoutSession(
       return { error: "Invalid cart" };
     }
 
+    const stockCheck = await validateCartStock();
+    if (!("ok" in stockCheck) || stockCheck.ok === false) {
+      const msg = stockCheck.items
+        .map((it) => `${it.name}${it.sku ? ` (${it.sku})` : ""}: ${it.available} in stock, requested ${it.requested}`)
+        .join("; ");
+      return { error: `Insufficient stock for: ${msg}` };
+    }
+
     const line_items = cart.items.map((it) => {
       const img =
-        it.imageUrl && it.imageUrl.startsWith("https://") ? it.imageUrl : undefined;
+        it.imageUrl && it.imageUrl.startsWith("https://")
+          ? it.imageUrl
+          : undefined;
       return {
         quantity: it.quantity,
         price_data: {
-          currency: "usd",
+          currency: CURRENCY,
           unit_amount: toCents(it.price),
           product_data: {
             name: it.name,
@@ -50,16 +74,18 @@ export async function createStripeCheckoutSession(
       };
     });
 
-    const shippingAmount = cart.count > 0 ? 2 : 0;
+    const configuredShipping = Number(process.env.STRIPE_SHIPPING_FIXED_AMOUNT || "2");
+    const shippingAmount = cart.count > 0 && Number.isFinite(configuredShipping)
+      ? Math.max(0, configuredShipping)
+      : 0;
 
-    const baseUrl =
-      process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : process.env.BETTER_AUTH_URL || "http://localhost:3000";
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.BETTER_AUTH_URL || "http://localhost:3000";
 
     const session = await getStripe().checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
+      payment_method_types: paymentMethodTypes,
       line_items,
       metadata: {
         cartId: String(cart.id),
@@ -73,18 +99,23 @@ export async function createStripeCheckoutSession(
           shipping_rate_data: {
             display_name: "Standard",
             type: "fixed_amount",
-            fixed_amount: { amount: toCents(shippingAmount), currency: "usd" },
+            fixed_amount: {
+              amount: toCents(shippingAmount),
+              currency: CURRENCY,
+            },
           },
         },
       ],
-      shipping_address_collection: { allowed_countries: ["US", "CA"] },
+      shipping_address_collection: { allowed_countries: allowedCountries },
     });
 
     revalidatePath("/cart");
     return { url: session.url as string };
   } catch (e: unknown) {
     const msg =
-      typeof e === "object" && e !== null && "message" in e ? String((e as { message: unknown }).message) : "Unknown error";
+      typeof e === "object" && e !== null && "message" in e
+        ? String((e as { message: unknown }).message)
+        : "Unknown error";
     console.error("Stripe Checkout session create failed:", e);
     return { error: msg };
   }
