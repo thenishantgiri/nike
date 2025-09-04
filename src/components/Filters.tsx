@@ -16,9 +16,10 @@ export default function Filters() {
 
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    gender: true,
-    size: true,
-    color: false,
+    collection: false,
+    room: true,
+    material: true,
+    finish: false,
     price: true,
   });
 
@@ -36,7 +37,7 @@ export default function Filters() {
   );
 
   const onToggle = (
-    group: "gender" | "size" | "color" | "price",
+    group: "collection" | "room" | "material" | "finish" | "price",
     value: string
   ) => {
     const next = toggleMultiValueParam(query, group, value);
@@ -54,7 +55,7 @@ export default function Filters() {
   const Panel = (
     <aside className="w-full sm:w-64 shrink-0 p-4 sm:p-0">
       <div className="space-y-6">
-        {(["gender", "size", "color", "price"] as const).map((group) => (
+        {(["collection", "room", "material", "finish", "price"] as const).map((group) => (
           <div key={group} className="border-b border-light-300 pb-4">
             <button
               className="w-full flex items-center justify-between py-2 focus:outline-none rounded"

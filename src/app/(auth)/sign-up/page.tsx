@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
 import AuthForm from "@/components/AuthForm";
 import SocialProviders from "@/components/SocialProviders";
@@ -36,7 +36,9 @@ export default function SignUp() {
         </div>
       </div>
 
-      <AuthForm mode="signup" onSubmit={handleSignUp} />
+      <Suspense fallback={<div className="text-center font-jost text-body">Loading form…</div>}>
+        <AuthForm mode="signup" onSubmit={handleSignUp} />
+      </Suspense>
 
       <div className="text-center text-sm text-dark-700 font-jost">
         By signing up, you agree to our{" "}

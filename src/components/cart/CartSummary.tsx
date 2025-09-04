@@ -85,6 +85,10 @@ export default function CartSummary({
               setError("Your cart is empty.");
               return;
             }
+            if (!_isAuthed) {
+              router.push(`/sign-in?redirect=${encodeURIComponent("/checkout")}`);
+              return;
+            }
             router.push("/checkout");
           }}
           className="w-full border border-dark-900 text-dark-900 rounded-full py-3 font-jost text-body hover:bg-light-200"

@@ -1,7 +1,7 @@
 import Card from "@/components/Card";
 import { getAllProducts } from "@/lib/actions/product";
 import { ShoppingBag } from "lucide-react";
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 import Link from "next/link";
 
 export default async function Home() {
@@ -14,7 +14,7 @@ export default async function Home() {
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 space-y-12">
       <section className="relative w-full min-h-[630px] rounded-lg">
         <div className="absolute inset-0 z-0">
-          <Image
+          <SmartImage
             src="/hero-bg.png"
             alt="Hero Background"
             fill
@@ -45,9 +45,9 @@ export default async function Home() {
           </div>
 
           <div className="flex-[1.15] relative lg:min-h-[inherit] min-h-[350px] w-full flex items-center justify-center">
-            <Image
-              src="/hero-shoe.png"
-              alt="Hero Shoe"
+            <SmartImage
+              src="/feature.png"
+              alt="Featured furniture"
               fill
               className="object-contain"
             />
@@ -57,7 +57,7 @@ export default async function Home() {
 
       <section>
         <h2 className="text-heading-3 font-jost font-bold text-dark-900">
-          Latest Shoes
+          Latest Furniture
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-5">
@@ -67,7 +67,7 @@ export default async function Home() {
                 title={p.name}
                 category={p.category.name}
                 price={p.minPrice}
-                image={p.imageUrl ?? "shoes/shoe-1.jpg"}
+                image={p.imageUrl ?? "/feature.png"}
               />
             </Link>
           ))}

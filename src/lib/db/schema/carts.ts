@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, pgTable, timestamp, uuid, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { guest } from "./guest";
 import { user } from "./user";
@@ -13,18 +13,24 @@ export const carts = pgTable("carts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const cartItems = pgTable("cart_items", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  cartId: uuid("cart_id")
-    .notNull()
-    .references(() => carts.id, { onDelete: "cascade" }),
-  productVariantId: uuid("product_variant_id")
-    .notNull()
-    .references(() => productVariants.id, { onDelete: "cascade" }),
-  quantity: integer("quantity").notNull().default(1),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+export const cartItems = pgTable(
+  "cart_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cartId: uuid("cart_id")
+      .notNull()
+      .references(() => carts.id, { onDelete: "cascade" }),
+    productVariantId: uuid("product_variant_id")
+      .notNull()
+      .references(() => productVariants.id, { onDelete: "cascade" }),
+    quantity: integer("quantity").notNull().default(1),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    uniqCartItem: uniqueIndex("uniq_cart_item").on(t.cartId, t.productVariantId),
+  })
+);
 
 export const cartsRelations = relations(carts, ({ one, many }) => ({
   user: one(user, {

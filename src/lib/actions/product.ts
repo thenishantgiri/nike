@@ -4,13 +4,16 @@ import { db } from "@/lib/db";
 import {
   brands,
   categories,
-  colors,
-  genders,
   productImages,
   products,
   productVariants,
   reviews,
   sizes,
+  rooms,
+  materials,
+  finishes,
+  collections,
+  productCollections,
 } from "@/lib/db/schema";
 import {
   and,
@@ -25,15 +28,17 @@ import {
 } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
+// ProductListItem used by PLP and latest products widgets
+// finishCount: how many distinct finishes exist across variants for the product
 export type ProductListItem = {
   id: string;
   name: string;
   brand: { id: string; name: string; slug: string };
   category: { id: string; name: string; slug: string };
-  gender: { id: string; label: string; slug: string };
+  room?: { id: string; name: string; slug: string } | null;
   minPrice: number;
   maxPrice: number;
-  colorCount: number;
+  finishCount: number;
   imageUrl: string | null;
 };
 
@@ -48,9 +53,10 @@ export type ProductFiltersInput = {
   search?: string;
   category?: string;
   brand?: string;
-  gender?: string;
-  colors?: string[];
-  sizes?: string[];
+  room?: string;
+  materials?: string[];
+  finishes?: string[];
+  collections?: string[];
   priceMin?: number;
   priceMax?: number;
   sortBy?: "price_asc" | "price_desc" | "latest" | "oldest";
@@ -62,11 +68,13 @@ export type PDPImage = { url: string; isPrimary: boolean; sortOrder: number };
 export type PDPVariant = {
   id: string;
   sku: string;
-  color: { id: string; name: string; slug: string; hexCode?: string | null };
-  size: { id: string; name: string; slug: string; sortOrder?: number | null };
+  finish: { id: string; name: string; slug: string; hexCode?: string | null };
+  size?: { id: string; name: string; slug: string; sortOrder?: number | null } | null;
   price: number;
   salePrice?: number | null;
   inStock: number;
+  weight?: number | null;
+  dimensions?: { length: number; width: number; height: number } | null;
   images: PDPImage[];
 };
 export type PDPProduct = {
@@ -76,7 +84,9 @@ export type PDPProduct = {
   priceRange: { min: number; max: number };
   brand: { id: string; name: string; slug: string };
   category: { id: string; name: string; slug: string };
-  gender: { id: string; label: string; slug: string };
+  room?: { id: string; name: string; slug: string } | null;
+  material?: { id: string; name: string; slug: string } | null;
+  finish?: { id: string; name: string; slug: string } | null;
   variants: PDPVariant[];
   images: PDPImage[];
   defaultVariantId?: string | null;
@@ -140,9 +150,9 @@ export async function getAllProducts(
   if (filters.brand) {
     whereAnd.push(matchIdOrSlug(products.brandId, brands.slug, filters.brand)!);
   }
-  if (filters.gender) {
+  if (filters.room) {
     whereAnd.push(
-      matchIdOrSlug(products.genderId, genders.slug, filters.gender)!
+      matchIdOrSlug(products.roomId as unknown as AnyPgColumn, rooms.slug as unknown as AnyPgColumn, filters.room)!
     );
   }
 
@@ -155,24 +165,31 @@ export async function getAllProducts(
     whereAnd.push(sql`${priceExpr} <= ${filters.priceMax}`);
   }
 
-  if (filters.colors && filters.colors.length) {
-    const uuids = filters.colors.filter(isUuid);
-    const slugs = filters.colors.filter((v) => !isUuid(v));
-    const parts: SQL<unknown>[] = [];
-    if (uuids.length) parts.push(inArray(productVariants.colorId, uuids));
-    if (slugs.length) parts.push(inArray(colors.slug, slugs));
-    if (parts.length)
-      whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
-  }
+  // no color filter — finishes replace colors in furniture domain
 
-  if (filters.sizes && filters.sizes.length) {
-    const uuids = filters.sizes.filter(isUuid);
-    const slugs = filters.sizes.filter((v) => !isUuid(v));
+  if (filters.materials && filters.materials.length) {
+    const uuids = filters.materials.filter(isUuid);
+    const slugs = filters.materials.filter((v) => !isUuid(v));
     const parts: SQL<unknown>[] = [];
-    if (uuids.length) parts.push(inArray(productVariants.sizeId, uuids));
-    if (slugs.length) parts.push(inArray(sizes.slug, slugs));
-    if (parts.length)
-      whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
+    if (uuids.length) parts.push(inArray(products.materialId as unknown as AnyPgColumn, uuids));
+    if (slugs.length) parts.push(inArray(materials.slug as unknown as AnyPgColumn, slugs));
+    if (parts.length) whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
+  }
+  if (filters.finishes && filters.finishes.length) {
+    const uuids = filters.finishes.filter(isUuid);
+    const slugs = filters.finishes.filter((v) => !isUuid(v));
+    const parts: SQL<unknown>[] = [];
+    if (uuids.length) parts.push(inArray(products.finishId as unknown as AnyPgColumn, uuids));
+    if (slugs.length) parts.push(inArray(finishes.slug as unknown as AnyPgColumn, slugs));
+    if (parts.length) whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
+  }
+  if (filters.collections && filters.collections.length) {
+    const uuids = filters.collections.filter(isUuid);
+    const slugs = filters.collections.filter((v) => !isUuid(v));
+    const parts: SQL<unknown>[] = [];
+    if (uuids.length) parts.push(inArray(productCollections.collectionId as unknown as AnyPgColumn, uuids));
+    if (slugs.length) parts.push(inArray(collections.slug as unknown as AnyPgColumn, slugs));
+    if (parts.length) whereAnd.push(or(...(parts as SQL<unknown>[])) as SQL<unknown>);
   }
 
   const orderByExpr =
@@ -184,7 +201,7 @@ export async function getAllProducts(
       ? asc(products.createdAt)
       : desc(products.createdAt);
 
-  const imageExprWhenColor = sql<string | null>`
+  const imageExprWhenFinish = sql<string | null>`
     coalesce(
       nullif(
         max(case when ${productImages.variantId} is not null then ${productImages.url} end),
@@ -211,23 +228,26 @@ export async function getAllProducts(
       categoryId: categories.id,
       categoryName: categories.name,
       categorySlug: categories.slug,
-      genderId: genders.id,
-      genderLabel: genders.label,
-      genderSlug: genders.slug,
+      roomId: rooms.id,
+      roomName: rooms.name,
+      roomSlug: rooms.slug,
       minPrice: sql<number>`min(${priceExpr})`,
       maxPrice: sql<number>`max(${priceExpr})`,
-      colorCount: sql<number>`count(distinct ${productVariants.colorId})`,
+      finishCount: sql<number>`count(distinct ${productVariants.finishId})`,
       imageUrl:
-        filters.colors && filters.colors.length
-          ? imageExprWhenColor
+        filters.finishes && filters.finishes.length
+          ? imageExprWhenFinish
           : imageExprDefault,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
     .leftJoin(categories, eq(products.categoryId, categories.id))
-    .leftJoin(genders, eq(products.genderId, genders.id))
+    .leftJoin(rooms, eq(products.roomId, rooms.id))
+    .leftJoin(materials, eq(products.materialId as unknown as AnyPgColumn, materials.id as unknown as AnyPgColumn))
     .leftJoin(productVariants, eq(productVariants.productId, products.id))
-    .leftJoin(colors, eq(colors.id, productVariants.colorId))
+    .leftJoin(productCollections, eq(productCollections.productId, products.id))
+    .leftJoin(collections, eq(productCollections.collectionId, collections.id))
+    .leftJoin(finishes, eq(finishes.id, productVariants.finishId))
     .leftJoin(sizes, eq(sizes.id, productVariants.sizeId))
     .leftJoin(
       productImages,
@@ -246,9 +266,9 @@ export async function getAllProducts(
       categories.id,
       categories.name,
       categories.slug,
-      genders.id,
-      genders.label,
-      genders.slug
+      rooms.id,
+      rooms.name,
+      rooms.slug
     )
     .orderBy(orderByExpr)
     .limit(limit)
@@ -261,9 +281,12 @@ export async function getAllProducts(
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
     .leftJoin(categories, eq(products.categoryId, categories.id))
-    .leftJoin(genders, eq(products.genderId, genders.id))
+    .leftJoin(rooms, eq(products.roomId, rooms.id))
+    .leftJoin(materials, eq(products.materialId as unknown as AnyPgColumn, materials.id as unknown as AnyPgColumn))
     .leftJoin(productVariants, eq(productVariants.productId, products.id))
-    .leftJoin(colors, eq(colors.id, productVariants.colorId))
+    .leftJoin(productCollections, eq(productCollections.productId, products.id))
+    .leftJoin(collections, eq(productCollections.collectionId, collections.id))
+    .leftJoin(finishes, eq(finishes.id, productVariants.finishId))
     .leftJoin(sizes, eq(sizes.id, productVariants.sizeId))
     .where(and(...whereAnd));
 
@@ -276,10 +299,10 @@ export async function getAllProducts(
       name: r.categoryName!,
       slug: r.categorySlug!,
     },
-    gender: { id: r.genderId!, label: r.genderLabel!, slug: r.genderSlug! },
+    room: r.roomId ? { id: r.roomId!, name: r.roomName!, slug: r.roomSlug! } : null,
     minPrice: Number(r.minPrice ?? 0),
     maxPrice: Number(r.maxPrice ?? 0),
-    colorCount: Number(r.colorCount ?? 0),
+    finishCount: Number(r.finishCount ?? 0),
     imageUrl: r.imageUrl ?? null,
   }));
 
@@ -302,14 +325,22 @@ export async function getProduct(
       categoryId: categories.id,
       categoryName: categories.name,
       categorySlug: categories.slug,
-      genderId: genders.id,
-      genderLabel: genders.label,
-      genderSlug: genders.slug,
+      roomId: rooms.id,
+      roomName: rooms.name,
+      roomSlug: rooms.slug,
+      materialId: materials.id,
+      materialName: materials.name,
+      materialSlug: materials.slug,
+      finishId: finishes.id,
+      finishName: finishes.name,
+      finishSlug: finishes.slug,
     })
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
     .leftJoin(categories, eq(products.categoryId, categories.id))
-    .leftJoin(genders, eq(products.genderId, genders.id))
+    .leftJoin(rooms, eq(products.roomId, rooms.id))
+    .leftJoin(materials, eq(products.materialId as unknown as AnyPgColumn, materials.id as unknown as AnyPgColumn))
+    .leftJoin(finishes, eq(products.finishId as unknown as AnyPgColumn, finishes.id as unknown as AnyPgColumn))
     .where(eq(products.id, productId));
 
   if (!row) return null;
@@ -321,17 +352,19 @@ export async function getProduct(
       price: productVariants.price,
       salePrice: productVariants.salePrice,
       inStock: productVariants.inStock,
-      colorId: colors.id,
-      colorName: colors.name,
-      colorSlug: colors.slug,
-      colorHex: colors.hexCode,
+      weight: productVariants.weight,
+      dimensions: productVariants.dimensions,
+      finishId: finishes.id,
+      finishName: finishes.name,
+      finishSlug: finishes.slug,
+      finishHex: finishes.hexCode,
       sizeId: sizes.id,
       sizeName: sizes.name,
       sizeSlug: sizes.slug,
       sizeOrder: sizes.sortOrder,
     })
     .from(productVariants)
-    .leftJoin(colors, eq(colors.id, productVariants.colorId))
+    .leftJoin(finishes, eq(finishes.id, productVariants.finishId))
     .leftJoin(sizes, eq(sizes.id, productVariants.sizeId))
     .where(eq(productVariants.productId, productId));
 
@@ -373,18 +406,22 @@ export async function getProduct(
     price: Number(v.price),
     salePrice: v.salePrice != null ? Number(v.salePrice) : null,
     inStock: v.inStock,
-    color: {
-      id: v.colorId!,
-      name: v.colorName!,
-      slug: v.colorSlug!,
-      hexCode: v.colorHex ?? undefined,
+    weight: (v.weight as number | null) ?? null,
+    dimensions: (v.dimensions as { length: number; width: number; height: number } | null) ?? null,
+    finish: {
+      id: v.finishId!,
+      name: v.finishName!,
+      slug: v.finishSlug!,
+      hexCode: (v.finishHex as string | null) ?? undefined,
     },
-    size: {
-      id: v.sizeId!,
-      name: v.sizeName!,
-      slug: v.sizeSlug!,
-      sortOrder: v.sizeOrder ?? undefined,
-    },
+    size: v.sizeId
+      ? {
+          id: v.sizeId,
+          name: v.sizeName!,
+          slug: v.sizeSlug!,
+          sortOrder: v.sizeOrder ?? undefined,
+        }
+      : null,
     images: imagesByVariant.get(v.id) || [],
   }));
 
@@ -407,11 +444,9 @@ export async function getProduct(
       name: row.categoryName!,
       slug: row.categorySlug!,
     },
-    gender: {
-      id: row.genderId!,
-      label: row.genderLabel!,
-      slug: row.genderSlug!,
-    },
+    room: row.roomId ? { id: row.roomId!, name: row.roomName!, slug: row.roomSlug! } : null,
+    material: row.materialId ? { id: row.materialId!, name: row.materialName!, slug: row.materialSlug! } : null,
+    finish: row.finishId ? { id: row.finishId!, name: row.finishName!, slug: row.finishSlug! } : null,
     variants,
     images: productImagesAll,
     defaultVariantId: row.defaultVariantId,
@@ -473,7 +508,7 @@ export async function getRecommendedProducts(
       id: products.id,
       categoryId: products.categoryId,
       brandId: products.brandId,
-      genderId: products.genderId,
+      roomId: products.roomId,
     })
     .from(products)
     .where(eq(products.id, productId));
@@ -487,6 +522,16 @@ export async function getRecommendedProducts(
     )
   `;
 
+  const whereConds: SQL[] = [
+    eq(products.isPublished, true),
+    eq(products.categoryId, p.categoryId),
+    eq(products.brandId, p.brandId),
+    sql`${products.id} != ${p.id}`,
+  ];
+  if (p.roomId) {
+    whereConds.push(eq(products.roomId, p.roomId));
+  }
+
   const rows = await db
     .select({
       id: products.id,
@@ -499,15 +544,7 @@ export async function getRecommendedProducts(
     .leftJoin(categories, eq(products.categoryId, categories.id))
     .leftJoin(productVariants, eq(productVariants.productId, products.id))
     .leftJoin(productImages, eq(productImages.productId, products.id))
-    .where(
-      and(
-        eq(products.isPublished, true),
-        eq(products.categoryId, p.categoryId),
-        eq(products.brandId, p.brandId),
-        eq(products.genderId, p.genderId),
-        sql`${products.id} != ${p.id}`
-      )
-    )
+    .where(and(...whereConds))
     .groupBy(products.id, products.name, categories.name)
     .orderBy(desc(products.createdAt))
     .limit(6);
@@ -538,12 +575,9 @@ export async function getLatestProducts(): Promise<ProductWithAggregates[]> {
       categoryId: categories.id,
       categoryName: categories.name,
       categorySlug: categories.slug,
-      genderId: genders.id,
-      genderLabel: genders.label,
-      genderSlug: genders.slug,
       minPrice: sql<number>`min(${productVariants.salePrice}, ${productVariants.price})`,
       maxPrice: sql<number>`max(${productVariants.salePrice}, ${productVariants.price})`,
-      colorCount: sql<number>`count(distinct ${productVariants.colorId})`,
+      finishCount: sql<number>`count(distinct ${productVariants.finishId})`,
       imageUrl: sql<string | null>`
         coalesce(
           max(case when ${productImages.isPrimary} = true then ${productImages.url} end),
@@ -554,9 +588,10 @@ export async function getLatestProducts(): Promise<ProductWithAggregates[]> {
     .from(products)
     .leftJoin(brands, eq(products.brandId, brands.id))
     .leftJoin(categories, eq(products.categoryId, categories.id))
-    .leftJoin(genders, eq(products.genderId, genders.id))
     .leftJoin(productVariants, eq(productVariants.productId, products.id))
-    .leftJoin(colors, eq(colors.id, productVariants.colorId))
+    .leftJoin(productCollections, eq(productCollections.productId, products.id))
+    .leftJoin(collections, eq(productCollections.collectionId, collections.id))
+    .leftJoin(finishes, eq(finishes.id, productVariants.finishId))
     .leftJoin(sizes, eq(sizes.id, productVariants.sizeId))
     .leftJoin(productImages, eq(productImages.productId, products.id))
     .where(eq(products.isPublished, true))
@@ -572,10 +607,9 @@ export async function getLatestProducts(): Promise<ProductWithAggregates[]> {
       name: r.categoryName!,
       slug: r.categorySlug!,
     },
-    gender: { id: r.genderId!, label: r.genderLabel!, slug: r.genderSlug! },
     minPrice: Number(r.minPrice ?? 0),
     maxPrice: Number(r.maxPrice ?? 0),
-    colorCount: Number(r.colorCount ?? 0),
+    finishCount: Number(r.finishCount ?? 0),
     imageUrl: r.imageUrl ?? null,
   }));
 }

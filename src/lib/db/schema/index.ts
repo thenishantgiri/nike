@@ -19,6 +19,8 @@ export { wishlists, wishlistsRelations } from './wishlists';
 export { collections, collectionsRelations } from './collections';
 export { productCollections, productCollectionsRelations } from './product-collections';
 
-export { genders, gendersRelations } from './filters/genders';
-export { colors, colorsRelations } from './filters/colors';
 export { sizes, sizesRelations } from './filters/sizes';
+export { rooms } from './rooms';
+export { materials } from './materials';
+export { finishes } from './finishes';
+export { styles } from './styles';

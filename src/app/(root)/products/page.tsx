@@ -20,7 +20,7 @@ function Pills({
     return Array.isArray(v) ? v : String(v).split(",");
   };
   const entries: Array<{ key: string; value: string }> = [];
-  ["gender", "size", "color", "price"].forEach((k) => {
+  ["collection", "room", "material", "finish", "price"].forEach((k) => {
     flat(k).forEach((v) => entries.push({ key: k, value: v }));
   });
   if (!entries.length) return null;
@@ -96,8 +96,8 @@ export default async function ProductsPage({ searchParams }: PageProps) {
                       title={p.name}
                       category={p.category.name}
                       price={p.minPrice}
-                      image={p.imageUrl || "/shoes/shoe-1.jpg"}
-                      colors={p.colorCount}
+                      image={p.imageUrl || "/feature.png"}
+                      finishes={p.finishCount}
                     />
                   </Link>
                 ))}

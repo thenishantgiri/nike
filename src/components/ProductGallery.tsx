@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
-import Image from "next/image";
+import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import SmartImage from "@/components/SmartImage";
 import React, { useEffect, useMemo, useState } from "react";
 
 type Variant = {
@@ -26,7 +26,7 @@ export default function ProductGallery({
   variants,
   initialVariantId,
   activeVariantId,
-  onVariantChange,
+  onVariantChange: _onVariantChange,
 }: ProductGalleryProps) {
   const validVariants = useMemo(
     () =>
@@ -39,21 +39,26 @@ export default function ProductGallery({
     [variants]
   );
 
-  const [uncontrolledActiveVariantId, setUncontrolledActiveVariantId] = useState<string | undefined>(
-    () => initialVariantId || validVariants[0]?.id
-  );
+  const [uncontrolledActiveVariantId, _setUncontrolledActiveVariantId] =
+    useState<string | undefined>(
+      () => initialVariantId || validVariants[0]?.id
+    );
   const controlled = typeof activeVariantId !== "undefined";
-  const currentActiveVariantId = controlled ? activeVariantId : uncontrolledActiveVariantId;
-  const setActiveVariantIdAll = (id: string) => {
-    if (!controlled) setUncontrolledActiveVariantId(id);
-    onVariantChange?.(id);
-  };
+  const currentActiveVariantId = controlled
+    ? activeVariantId
+    : uncontrolledActiveVariantId;
+  // No-op helper removed (was unused after swatch removal). Consumers should
+  // call `onVariantChange` directly if needed; internally we manage local state
+  // when the component is uncontrolled.
   const activeVariant =
-    validVariants.find((v) => v.id === currentActiveVariantId) || validVariants[0];
+    validVariants.find((v) => v.id === currentActiveVariantId) ||
+    validVariants[0];
 
   const [activeIndex, setActiveIndex] = useState(0);
   const mainImgs = activeVariant?.images || [];
-  const mainImg = mainImgs[activeIndex] || "";
+  const hasImages = mainImgs.length > 0;
+  const safeIndex = Math.min(Math.max(0, activeIndex), Math.max(0, mainImgs.length - 1));
+  const mainImg = hasImages ? mainImgs[safeIndex] : undefined;
 
   useEffect(() => {
     setActiveIndex(0);
@@ -68,7 +73,12 @@ export default function ProductGallery({
     }
   };
 
-  const hasImages = mainImgs.length > 0;
+  // Clamp index when image set changes to avoid empty src flashes
+  useEffect(() => {
+    if (activeIndex > mainImgs.length - 1) {
+      setActiveIndex(Math.max(0, mainImgs.length - 1));
+    }
+  }, [mainImgs.length, activeIndex]);
 
   return (
     <section aria-label="Product media" className="w-full">
@@ -77,10 +87,10 @@ export default function ProductGallery({
         onKeyDown={onKeyDownMain}
         className="relative w-full rounded-xl bg-light-200 flex items-center justify-center aspect-[4/3] outline-none focus:ring-2 focus:ring-dark-900"
       >
-        {hasImages ? (
-          <Image
+        {hasImages && mainImg ? (
+          <SmartImage
             src={mainImg}
-            alt={`${activeVariant?.name} - image ${activeIndex + 1}`}
+            alt={`${activeVariant?.name} - image ${safeIndex + 1}`}
             fill
             className="object-contain"
             sizes="(max-width: 768px) 100vw, (max-width:1200px) 60vw, 720px"
@@ -134,54 +144,10 @@ export default function ProductGallery({
                 : "border-light-300 hover:border-dark-700"
             } focus:outline-none focus:ring-2 focus:ring-dark-900`}
           >
-            <Image
-              src={src}
-              alt={`Thumbnail ${idx + 1}`}
-              fill
-              className="object-cover"
-              sizes="80px"
-            />
+            <SmartImage src={src} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" sizes="80px" />
           </button>
         ))}
       </div>
-
-      {/* Variant swatches: use first image of each variant as a circular swatch */}
-      {validVariants.length > 1 && (
-        <div className="mt-6">
-          <p className="font-jost text-caption text-dark-700 mb-2">Colors</p>
-          <div className="flex items-center gap-3">
-            {validVariants.map((v) => (
-              <button
-                key={v.id}
-                aria-pressed={v.id === currentActiveVariantId}
-                onClick={() => setActiveVariantIdAll(v.id)}
-                className={`relative h-10 w-10 rounded-full border overflow-hidden ${
-                  v.id === currentActiveVariantId
-                    ? "border-dark-900"
-                    : "border-light-300 hover:border-dark-700"
-                } focus:outline-none focus:ring-2 focus:ring-dark-900`}
-                title={v.name}
-              >
-                <Image
-                  src={v.images[0]}
-                  alt={v.name}
-                  fill
-                  className="object-cover"
-                  sizes="40px"
-                />
-
-                <p className="sr-only">{v.name}</p>
-
-                {v.id === currentActiveVariantId && (
-                  <span className="absolute inset-0 flex items-center justify-center text-light-100">
-                    <Check className="h-5 w-5 drop-shadow" />
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </section>
   );
 }

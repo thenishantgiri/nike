@@ -97,7 +97,7 @@ async function AlsoLikeSection({ productId }: { productId: string }) {
               category={p.category}
               price={p.price}
               image={p.image || undefined}
-              colors={1}
+              finishes={1}
             />
           </Link>
         ))}
@@ -121,18 +121,29 @@ export default async function ProductDetailPage({
 
   if (!product) return <NotFoundBlock />;
 
-  const galleryVariants = product.variants
-    .map((v) => ({
-      id: v.id,
-      name: `${v.color.name} / ${v.size.name}`,
-      images: (v.images.length ? v.images : product.images)
-        .map((im) => im.url)
-        .filter(Boolean),
-    }))
-    .filter((gv) => gv.images.length > 0);
+  // Build gallery variants grouped by finish: one swatch per finish using its first variant's images
+  const galleryVariants = Array.from(
+    new Map(
+      product.variants.map((v) => [
+        v.finish.name,
+        {
+          id: v.id,
+          name: `${v.finish.name}${v.size?.name ? ` / ${v.size.name}` : ""}`,
+          finishName: v.finish.name,
+          images: (v.images.length ? v.images : product.images)
+            .map((im) => im.url)
+            .filter(Boolean),
+        },
+      ])
+    ).values()
+  ).filter((gv) => gv.images.length > 0);
 
   const uniqueSizes = Array.from(
-    new Set(product.variants.map((v) => v.size.name))
+    new Set(
+      product.variants
+        .map((v) => v.size?.name)
+        .filter((s): s is string => typeof s === "string" && s.length > 0)
+    )
   ).sort((a, b) => {
     const parse = (s: string) => parseFloat(s.replace("-", "."));
     return (parse(a) || 0) - (parse(b) || 0);
@@ -140,8 +151,11 @@ export default async function ProductDetailPage({
 
   const variantsMeta = product.variants.map((v) => ({
     id: v.id,
-    colorName: v.color.name,
-    sizeName: v.size.name,
+    finishName: v.finish.name,
+    sizeName: v.size?.name || null,
+    sku: v.sku,
+    weight: v.weight ?? null,
+    dimensions: (v.dimensions as { length: number; width: number; height: number } | null) ?? null,
   }));
 
   const minPrice = product.priceRange.min;
@@ -155,13 +169,19 @@ export default async function ProductDetailPage({
         uniqueSizes={uniqueSizes}
         productVariants={variantsMeta}
         initialVariantId={product.defaultVariantId || galleryVariants[0]?.id}
+        productInfo={{
+          materialName: product.material?.name || null,
+          categoryName: product.category.name,
+          roomName: product.room?.name || null,
+          description: product.description || null,
+        }}
         RightTop={
           <>
             <h1 className="font-jost text-heading-3 text-dark-900">
               {product.name}
             </h1>
             <p className="font-jost text-caption text-dark-700 mt-1">
-              {product.gender.label}&nbsp;•&nbsp;{product.category.name}
+              {product.category.name}
             </p>
 
             <div className="mt-4 flex items-center gap-3">
@@ -173,13 +193,9 @@ export default async function ProductDetailPage({
             </div>
           </>
         }
-        RightBottom={
+        RightBottom={(
           <>
             <div className="mt-8 space-y-6">
-              <CollapsibleSection title="Product Details" defaultOpen>
-                <p>{product.description || "No description provided."}</p>
-              </CollapsibleSection>
-
               <CollapsibleSection title="Shipping" defaultOpen>
                 <p>
                   We offer free shipping on all orders over $100. For orders
@@ -217,7 +233,7 @@ export default async function ProductDetailPage({
               <ReviewsSection productId={product.id} />
             </Suspense>
           </>
-        }
+        )}
       />
 
       <Suspense

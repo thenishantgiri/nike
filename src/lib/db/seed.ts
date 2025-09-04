@@ -1,369 +1,356 @@
-import { db } from './index';
+import { eq } from "drizzle-orm";
+import * as fs from "fs";
+import * as path from "path";
+import { db } from "./index";
 import {
   brands,
   categories,
-  genders,
-  colors,
-  sizes,
+  collections,
+  finishes,
+  materials,
+  productCollections,
+  productImages,
   products,
   productVariants,
-  productImages,
-  collections,
-  productCollections,
-} from './schema';
-import { eq } from 'drizzle-orm';
-import * as fs from 'fs';
-import * as path from 'path';
+  rooms,
+  sizes,
+} from "./schema";
 
-const STATIC_UPLOADS_DIR = path.join(process.cwd(), 'static', 'uploads');
+const STATIC_UPLOADS_DIR = path.join(process.cwd(), "static", "uploads");
 
 function ensureStaticUploadsDir() {
   if (!fs.existsSync(STATIC_UPLOADS_DIR)) {
     fs.mkdirSync(STATIC_UPLOADS_DIR, { recursive: true });
-    console.log('✅ Created static/uploads directory');
+    console.log("Created static/uploads directory");
   }
 }
 
 function copyImageToStatic(sourceImagePath: string, fileName: string): string {
-  const sourcePath = path.join(process.cwd(), 'public', 'shoes', sourceImagePath);
+  // Read directly from /public (no shoe subfolder). If the file doesn't
+  // exist, fall back to /feature.png in /public.
+  const sourcePath = path.join(process.cwd(), "public", sourceImagePath);
   const destPath = path.join(STATIC_UPLOADS_DIR, fileName);
-  
   try {
     fs.copyFileSync(sourcePath, destPath);
-    console.log(`✅ Copied ${sourceImagePath} to static/uploads/${fileName}`);
     return `/static/uploads/${fileName}`;
-  } catch (error) {
-    console.error(`❌ Failed to copy ${sourceImagePath}:`, error);
-    return `/shoes/${sourceImagePath}`;
+  } catch {
+    // Fallback to a generic furniture placeholder
+    const fallback = path.join(process.cwd(), "public", "feature.png");
+    try {
+      fs.copyFileSync(fallback, destPath);
+      return `/static/uploads/${fileName}`;
+    } catch {
+      return `/feature.png`;
+    }
   }
 }
 
 export async function seed() {
-  console.log('🌱 Starting database seed...');
+  console.log("Starting furniture database seed...");
+  ensureStaticUploadsDir();
 
   try {
-    ensureStaticUploadsDir();
+    // Brand
+    const brandRows = await db
+      .insert(brands)
+      .values([{ name: "Acme Home", slug: "acme-home", logoUrl: "/logo.svg" }])
+      .returning()
+      .catch(async () => await db.select().from(brands));
+    const brand = brandRows[0]!;
 
-    console.log('📦 Seeding brands...');
-    const brandResults = await db.insert(brands).values([
-      {
-        name: 'Nike',
-        slug: 'nike',
-        logoUrl: '/logo.svg',
-      },
-    ]).returning();
-    const nikeBrand = brandResults[0];
+    // No colors table usage; finishes hold swatches
 
-    console.log('👥 Seeding genders...');
-    const genderResults = await db.insert(genders).values([
-      { label: 'Men', slug: 'men' },
-      { label: 'Women', slug: 'women' },
-      { label: 'Unisex', slug: 'unisex' },
-    ]).returning();
-    const menGender = genderResults[0];
-    const womenGender = genderResults[1];
-    const unisexGender = genderResults[2];
+    // Rooms
+    const roomRows = await db
+      .insert(rooms)
+      .values([
+        { name: "Living Room", slug: "living-room" },
+        { name: "Bedroom", slug: "bedroom" },
+        { name: "Dining Room", slug: "dining-room" },
+        { name: "Office", slug: "office" },
+      ])
+      .returning()
+      .catch(async () => await db.select().from(rooms));
+    const roomBySlug: Record<string, string> = {};
+    for (const r of roomRows) roomBySlug[r.slug] = r.id;
 
-    console.log('🎨 Seeding colors...');
-    const colorResults = await db.insert(colors).values([
-      { name: 'Black', slug: 'black', hexCode: '#000000' },
-      { name: 'White', slug: 'white', hexCode: '#FFFFFF' },
-      { name: 'Red', slug: 'red', hexCode: '#FF0000' },
-      { name: 'Blue', slug: 'blue', hexCode: '#0000FF' },
-      { name: 'Gray', slug: 'gray', hexCode: '#808080' },
-      { name: 'Green', slug: 'green', hexCode: '#008000' },
-      { name: 'Orange', slug: 'orange', hexCode: '#FFA500' },
-      { name: 'Pink', slug: 'pink', hexCode: '#FFC0CB' },
-      { name: 'Purple', slug: 'purple', hexCode: '#800080' },
-      { name: 'Yellow', slug: 'yellow', hexCode: '#FFFF00' },
-    ]).returning();
-    const colorData = colorResults;
+    // Materials
+    const materialRows = await db
+      .insert(materials)
+      .values([
+        { name: "Solid Wood", slug: "solid-wood" },
+        { name: "Metal", slug: "metal" },
+        { name: "Glass", slug: "glass" },
+        { name: "Fabric", slug: "fabric" },
+        { name: "Leather", slug: "leather" },
+      ])
+      .returning()
+      .catch(async () => await db.select().from(materials));
+    const materialBySlug: Record<string, string> = {};
+    for (const m of materialRows) materialBySlug[m.slug] = m.id;
 
-    console.log('📏 Seeding sizes...');
-    const sizeResults = await db.insert(sizes).values([
-      { name: '6', slug: '6', sortOrder: 1 },
-      { name: '6.5', slug: '6-5', sortOrder: 2 },
-      { name: '7', slug: '7', sortOrder: 3 },
-      { name: '7.5', slug: '7-5', sortOrder: 4 },
-      { name: '8', slug: '8', sortOrder: 5 },
-      { name: '8.5', slug: '8-5', sortOrder: 6 },
-      { name: '9', slug: '9', sortOrder: 7 },
-      { name: '9.5', slug: '9-5', sortOrder: 8 },
-      { name: '10', slug: '10', sortOrder: 9 },
-      { name: '10.5', slug: '10-5', sortOrder: 10 },
-      { name: '11', slug: '11', sortOrder: 11 },
-      { name: '11.5', slug: '11-5', sortOrder: 12 },
-      { name: '12', slug: '12', sortOrder: 13 },
-    ]).returning();
-    const sizeData = sizeResults;
+    // Finishes
+    const finishRows = await db
+      .insert(finishes)
+      .values([
+        { name: "Natural Oak", slug: "natural-oak", hexCode: "#D2B48C" },
+        { name: "Walnut", slug: "walnut", hexCode: "#5D3A1A" },
+        { name: "Matte Black", slug: "matte-black", hexCode: "#222222" },
+        { name: "Matte White", slug: "matte-white", hexCode: "#F5F5F5" },
+        { name: "Smoked", slug: "smoked", hexCode: "#6B6B6B" },
+      ])
+      .returning()
+      .catch(async () => await db.select().from(finishes));
+    const finishBySlug: Record<string, string> = {};
+    for (const f of finishRows) finishBySlug[f.slug] = f.id;
 
-    console.log('📂 Seeding categories...');
-    const categoryResults = await db.insert(categories).values([
-      { name: 'Running', slug: 'running' },
-      { name: 'Basketball', slug: 'basketball' },
-      { name: 'Lifestyle', slug: 'lifestyle' },
-      { name: 'Training', slug: 'training' },
-      { name: 'Soccer', slug: 'soccer' },
-    ]).returning();
-    const categoryData = categoryResults;
-    const categoryArray = Array.isArray(categoryData) ? categoryData : [];
+    // Categories
+    const categoryRows = await db
+      .insert(categories)
+      .values([
+        { name: "Sofas", slug: "sofas" },
+        { name: "Tables", slug: "tables" },
+        { name: "Chairs", slug: "chairs" },
+        { name: "Beds", slug: "beds" },
+        { name: "Storage", slug: "storage" },
+      ])
+      .returning()
+      .catch(async () => await db.select().from(categories));
+    const categoryBySlug: Record<string, string> = {};
+    for (const c of categoryRows) categoryBySlug[c.slug] = c.id;
 
-    console.log('🏷️ Seeding collections...');
-    const collectionResults = await db.insert(collections).values([
-      { name: 'Air Max Collection', slug: 'air-max-collection' },
-      { name: 'Jordan Collection', slug: 'jordan-collection' },
-      { name: 'React Collection', slug: 'react-collection' },
-    ]).returning();
-    const collectionData = collectionResults;
+    // Collections
+    const collectionRows = await db
+      .insert(collections)
+      .values([
+        { name: "Modern Living", slug: "modern-living" },
+        { name: "Scandinavian", slug: "scandinavian" },
+        { name: "New Arrivals", slug: "new-arrivals" },
+      ])
+      .returning()
+      .catch(async () => await db.select().from(collections));
+    const collectionBySlug: Record<string, string> = {};
+    for (const c of collectionRows) collectionBySlug[c.slug] = c.id;
 
-    console.log('👟 Seeding products...');
-    const productData = [
+    // Ensure a compatible size exists (variants support optional size)
+    const sizeRows = await db
+      .insert(sizes)
+      .values([{ name: "Standard", slug: "standard", sortOrder: 1 }])
+      .returning()
+      .catch(async () => await db.select().from(sizes));
+    // Prefer the 'standard' size if present, otherwise fallback to first
+    const std = sizeRows.find((s) => (s.slug as string) === "standard");
+    const sizeId = (std?.id || sizeRows[0]?.id) as string;
+
+    // Products
+    type PInput = {
+      name: string;
+      description: string;
+      categorySlug: string;
+      roomSlug: string;
+      materialSlug: string;
+      finishSlug: string;
+      images: string[];
+      collectionSlug: string;
+      variantFinishSlugs: string[];
+    };
+    const productsInput: PInput[] = [
       {
-        name: 'Air Max 270',
-        description: 'The Nike Air Max 270 delivers visible Air cushioning from heel to toe.',
-        categoryId: categoryArray[2]!.id, // Lifestyle
-        genderId: unisexGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-1.jpg'],
+        name: "Modern Fabric Sofa",
+        description:
+          "Comfortable 3-seater sofa with solid wood frame and plush cushions.",
+        categorySlug: "sofas",
+        roomSlug: "living-room",
+        materialSlug: "solid-wood",
+        finishSlug: "natural-oak",
+        images: ["trending-1.png", "trending-2.png", "trending-3.png"],
+        collectionSlug: "modern-living",
+        variantFinishSlugs: ["natural-oak", "walnut"],
       },
       {
-        name: 'Air Force 1',
-        description: 'The radiance lives on in the Nike Air Force 1, the basketball original.',
-        categoryId: categoryArray[1]!.id, // Basketball
-        genderId: unisexGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-2.webp'],
+        name: "Oak Dining Table",
+        description: "Rectangular solid oak dining table for six.",
+        categorySlug: "tables",
+        roomSlug: "dining-room",
+        materialSlug: "solid-wood",
+        finishSlug: "natural-oak",
+        images: ["trending-2.png", "trending-3.png", "feature.png"],
+        collectionSlug: "scandinavian",
+        variantFinishSlugs: ["natural-oak", "matte-black"],
       },
       {
-        name: 'React Infinity Run',
-        description: 'Nike React Infinity Run Flyknit is designed to help reduce injury.',
-        categoryId: categoryArray[0]!.id, // Running
-        genderId: unisexGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-3.webp'],
+        name: "Minimalist Armchair",
+        description: "Upholstered armchair with powder-coated metal legs.",
+        categorySlug: "chairs",
+        roomSlug: "living-room",
+        materialSlug: "solid-wood",
+        finishSlug: "smoked",
+        images: ["feature.png", "trending-1.png", "trending-2.png"],
+        collectionSlug: "new-arrivals",
+        variantFinishSlugs: ["smoked", "matte-white"],
       },
       {
-        name: 'Air Zoom Pegasus',
-        description: 'The Nike Air Zoom Pegasus delivers the responsive cushioning you love.',
-        categoryId: categoryArray[0]!.id, // Running
-        genderId: menGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-4.webp'],
+        name: "Walnut Bed Frame",
+        description: "Solid walnut platform bed with headboard.",
+        categorySlug: "beds",
+        roomSlug: "bedroom",
+        materialSlug: "solid-wood",
+        finishSlug: "walnut",
+        images: ["trending-3.png", "trending-2.png", "feature.png"],
+        collectionSlug: "modern-living",
+        variantFinishSlugs: ["walnut", "matte-white"],
       },
       {
-        name: 'Metcon 7',
-        description: 'The Nike Metcon 7 is the gold standard for weight training.',
-        categoryId: categoryArray[3]!.id, // Training
-        genderId: unisexGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-5.avif'],
-      },
-      {
-        name: 'Air Max 90',
-        description: 'Nothing as fly, nothing as comfortable, nothing as proven.',
-        categoryId: categoryArray[2]!.id, // Lifestyle
-        genderId: unisexGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-6.avif'],
-      },
-      {
-        name: 'Blazer Mid',
-        description: 'The Nike Blazer Mid brings a timeless design back to the streets.',
-        categoryId: categoryArray[2]!.id, // Lifestyle
-        genderId: womenGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-7.avif'],
-      },
-      {
-        name: 'Air Max 97',
-        description: 'The Nike Air Max 97 takes inspiration from Japanese bullet trains.',
-        categoryId: categoryArray[2]!.id, // Lifestyle
-        genderId: menGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-8.avif'],
-      },
-      {
-        name: 'Dunk Low',
-        description: 'Created for the hardwood but taken to the streets.',
-        categoryId: categoryArray[1]!.id, // Basketball
-        genderId: unisexGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-9.avif'],
-      },
-      {
-        name: 'Air Max Plus',
-        description: 'The Nike Air Max Plus delivers a bold look with incredible comfort.',
-        categoryId: categoryArray[2]!.id, // Lifestyle
-        genderId: menGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-10.avif'],
-      },
-      {
-        name: 'React Element 55',
-        description: 'The Nike React Element 55 is inspired by the Nike internationalist.',
-        categoryId: categoryArray[2]!.id, // Lifestyle
-        genderId: womenGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-11.avif'],
-      },
-      {
-        name: 'Air Zoom Structure',
-        description: 'The Nike Air Zoom Structure provides stability and support.',
-        categoryId: categoryArray[0]!.id, // Running
-        genderId: menGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-12.avif'],
-      },
-      {
-        name: 'Free RN 5.0',
-        description: 'The Nike Free RN 5.0 delivers the barefoot-like feel you love.',
-        categoryId: categoryArray[0]!.id, // Running
-        genderId: womenGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-13.avif'],
-      },
-      {
-        name: 'Air Max 2090',
-        description: 'The Nike Air Max 2090 takes the DNA of the Air Max 90.',
-        categoryId: categoryArray[2]!.id, // Lifestyle
-        genderId: unisexGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-14.avif'],
-      },
-      {
-        name: 'Zoom Freak 3',
-        description: 'Giannis needs a shoe that can keep up with his freakish athleticism.',
-        categoryId: categoryArray[1]!.id, // Basketball
-        genderId: menGender.id,
-        brandId: nikeBrand.id,
-        isPublished: true,
-        images: ['shoe-15.avif'],
+        name: "Oak Sideboard",
+        description: "Spacious oak sideboard with soft-close doors.",
+        categorySlug: "storage",
+        roomSlug: "living-room",
+        materialSlug: "solid-wood",
+        finishSlug: "natural-oak",
+        images: ["feature.png", "trending-1.png", "trending-2.png"],
+        collectionSlug: "scandinavian",
+        variantFinishSlugs: ["natural-oak", "smoked"],
       },
     ];
 
-    const insertedProducts: Array<{ id: string; name: string; images: string[] }> = [];
-    for (const productInfo of productData) {
-      const { images, ...productDataToInsert } = productInfo;
-      const insertedProductArray = await db.insert(products).values(productDataToInsert).returning();
-      const product = Array.isArray(insertedProductArray) ? insertedProductArray[0] : null;
-      if (!product) continue;
-      insertedProducts.push({ ...product, images });
-      console.log(`✅ Created product: ${product.name}`);
+    const insertedProducts: Array<{
+      id: string;
+      name: string;
+      images: string[];
+      variantFinishSlugs: string[];
+      collectionSlug: string;
+    }> = [];
+    for (const p of productsInput) {
+      const [prod] = await db
+        .insert(products)
+        .values({
+          name: p.name,
+          description: p.description,
+          categoryId: categoryBySlug[p.categorySlug],
+          brandId: brand.id,
+          isPublished: true,
+          roomId: roomBySlug[p.roomSlug],
+          materialId: materialBySlug[p.materialSlug],
+          finishId: finishBySlug[p.finishSlug],
+        })
+        .returning();
+      insertedProducts.push({
+        id: prod.id,
+        name: p.name,
+        images: p.images,
+        variantFinishSlugs: p.variantFinishSlugs,
+        collectionSlug: p.collectionSlug,
+      });
     }
 
-    console.log('🎨 Creating product variants...');
+    // Create variants per product
     const allVariants = [];
-    
-    for (const product of insertedProducts) {
-      const numVariants = Math.floor(Math.random() * 4) + 2; // 2-5 variants per product
-      const usedColorSizeCombos = new Set();
-      
-      for (let i = 0; i < numVariants; i++) {
-        const randomColor = colorData[Math.floor(Math.random() * colorData.length)];
-        const randomSize = sizeData[Math.floor(Math.random() * sizeData.length)];
-        const comboKey = `${randomColor.id}-${randomSize.id}`;
-        
-        if (usedColorSizeCombos.has(comboKey)) continue;
-        usedColorSizeCombos.add(comboKey);
-        
-        const basePrice = Math.floor(Math.random() * 100) + 80; // $80-$180
-        const hasSale = Math.random() < 0.3; // 30% chance of sale
-        const salePrice = hasSale ? Math.floor(basePrice * 0.8) : null;
-        
-        const variant = {
-          productId: product.id,
-          sku: `${product.name.replace(/\s+/g, '-').toLowerCase()}-${randomColor.slug}-${randomSize.slug}`,
-          price: basePrice.toString(),
-          salePrice: salePrice?.toString() || null,
-          colorId: randomColor.id,
-          sizeId: randomSize.id,
-          inStock: Math.floor(Math.random() * 50) + 5, // 5-55 in stock
-          weight: Math.random() * 2 + 0.5, // 0.5-2.5 lbs
-          dimensions: {
-            length: Math.random() * 5 + 10, // 10-15 inches
-            width: Math.random() * 3 + 4, // 4-7 inches
-            height: Math.random() * 2 + 3, // 3-5 inches
-          },
-        };
-        
-        const insertedVariantArray = await db.insert(productVariants).values(variant).returning();
-        const insertedVariant = Array.isArray(insertedVariantArray) ? insertedVariantArray[0] : null;
-        if (!insertedVariant) continue;
-        allVariants.push(insertedVariant);
-        console.log(`  ✅ Created variant: ${variant.sku}`);
+    for (const p of insertedProducts) {
+      let idx = 0;
+      for (const finishSlug of p.variantFinishSlugs) {
+        const basePrice = 500 + Math.floor(Math.random() * 800);
+        const salePrice =
+          Math.random() < 0.3 ? Math.floor(basePrice * 0.9) : null;
+        const sku = `${p.name
+          .replace(/\s+/g, "-")
+          .toLowerCase()}-${finishSlug}`;
+        const inserted = await db
+          .insert(productVariants)
+          .values({
+            productId: p.id,
+            sku,
+            price: String(basePrice),
+            salePrice: salePrice ? String(salePrice) : null,
+            finishId: finishBySlug[finishSlug],
+            sizeId: sizeId,
+            inStock: 5 + Math.floor(Math.random() * 12),
+            weight: 30 + Math.random() * 70,
+            dimensions: {
+              length: 60 + Math.random() * 30,
+              width: 20 + Math.random() * 20,
+              height: 20 + Math.random() * 20,
+            },
+            shippingClass: idx === 0 ? "ltl" : "parcel",
+          })
+          // Prevent duplicate variants when reseeding
+          .onConflictDoNothing({ target: productVariants.sku })
+          .returning();
+        const variant = inserted[0]
+          ? inserted[0]
+          : (
+              await db
+                .select()
+                .from(productVariants)
+                .where(eq(productVariants.sku, sku))
+                .limit(1)
+            )[0];
+        if (variant) allVariants.push(variant);
+        idx++;
       }
     }
 
-    console.log('🖼️ Creating product images...');
-    for (const product of insertedProducts) {
-      for (let i = 0; i < product.images.length; i++) {
-        const imageFileName = product.images[i];
-        const staticImageUrl = copyImageToStatic(imageFileName, `${product.id}-${i}-${imageFileName}`);
-        
+    // Product-level images
+    for (const p of insertedProducts) {
+      for (let i = 0; i < Math.min(3, p.images.length); i++) {
+        const url = copyImageToStatic(
+          p.images[i],
+          `${p.id}-p-${i}-${p.images[i]}`
+        );
         await db.insert(productImages).values({
-          productId: product.id,
-          variantId: null, // General product image
-          url: staticImageUrl,
+          productId: p.id,
+          variantId: null,
+          url,
           sortOrder: i,
           isPrimary: i === 0,
         });
-        console.log(`  ✅ Created image for ${product.name}: ${staticImageUrl}`);
       }
     }
 
-    console.log('🏷️ Creating product-collection relationships...');
-    for (const product of insertedProducts) {
-      if (product.name.includes('Air Max')) {
-        await db.insert(productCollections).values({
-          productId: product.id,
-          collectionId: collectionData[0]!.id, // Air Max Collection
+    // Variant-level images: seed 3 images for the first finish of each product, and 2 for others
+    const firstVariantByProduct = new Map<string, string>();
+    for (const v of allVariants) {
+      if (!firstVariantByProduct.has(v.productId as string)) {
+        firstVariantByProduct.set(v.productId as string, v.id as string);
+      }
+    }
+    for (const v of allVariants) {
+      const firstId = firstVariantByProduct.get(v.productId as string);
+      const count = v.id === firstId ? 3 : 2;
+      for (let i = 0; i < count; i++) {
+        const fname = i % 2 === 0 ? "trending-2.png" : "trending-3.png";
+        const url = copyImageToStatic(fname, `${v.id}-v-${i}-${fname}`);
+        await db.insert(productImages).values({
+          productId: v.productId,
+          variantId: v.id,
+          url,
+          sortOrder: i,
+          isPrimary: i === 0,
         });
-      } else if (product.name.includes('React')) {
-        await db.insert(productCollections).values({
-          productId: product.id,
-          collectionId: collectionData[2]!.id, // React Collection
-        });
       }
     }
 
-    console.log('🔄 Setting default variants...');
-    for (const product of insertedProducts) {
-      const productVariantsForProduct = allVariants.filter(v => v.productId === product.id);
-      if (productVariantsForProduct.length > 0) {
-        await db.update(products)
-          .set({ defaultVariantId: productVariantsForProduct[0].id })
-          .where(eq(products.id, product.id));
+    // Default variant per product
+    for (const p of insertedProducts) {
+      const [firstVar] = allVariants.filter((v) => v.productId === p.id);
+      if (firstVar) {
+        await db
+          .update(products)
+          .set({ defaultVariantId: firstVar.id })
+          .where(eq(products.id, p.id));
       }
     }
 
-    console.log('✅ Database seed completed successfully!');
-    console.log(`📊 Summary:`);
-    console.log(`  - 1 brand (Nike)`);
-    console.log(`  - 3 genders`);
-    console.log(`  - ${colorData.length} colors`);
-    console.log(`  - ${sizeData.length} sizes`);
-    console.log(`  - ${categoryArray.length} categories`);
-    console.log(`  - ${collectionData.length} collections`);
-    console.log(`  - ${insertedProducts.length} products`);
-    console.log(`  - ${allVariants.length} product variants`);
-    console.log(`  - ${insertedProducts.length} product images`);
+    // Collections mapping
+    for (const p of insertedProducts) {
+      await db.insert(productCollections).values({
+        productId: p.id,
+        collectionId: collectionBySlug[p.collectionSlug],
+      });
+    }
 
+    console.log("Furniture seed completed successfully");
   } catch (error) {
-    console.error('❌ Seed failed:', error);
+    console.error("Seed failed:", error);
     throw error;
   }
 }
@@ -371,11 +358,11 @@ export async function seed() {
 if (require.main === module) {
   seed()
     .then(() => {
-      console.log('🎉 Seed script completed');
+      console.log("Seed script completed");
       process.exit(0);
     })
     .catch((error) => {
-      console.error('💥 Seed script failed:', error);
+      console.error("Seed script failed:", error);
       process.exit(1);
     });
 }

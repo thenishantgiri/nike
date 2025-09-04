@@ -12,17 +12,18 @@ import {
   Package,
   Truck,
 } from "lucide-react";
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+// View model for order success UI using furniture semantics
 type OrderItemVM = {
   id: string;
   variantId: string;
   sku: string;
   product: { id: string; name: string };
   size: string | null;
-  color: { name: string | null; hex: string | null };
+  finish: { name: string | null; hex: string | null };
   imageUrl: string | null;
   quantity: number;
   unitPrice: number;
@@ -214,7 +215,7 @@ export default function OrderSuccess({ order }: { order: OrderVM }) {
                 <li key={it.id} className="py-4 flex gap-4">
                   <div className="relative w-20 h-20 rounded-lg bg-light-200 overflow-hidden flex-shrink-0">
                     {it.imageUrl ? (
-                      <Image
+                      <SmartImage
                         src={it.imageUrl}
                         alt={it.product.name}
                         fill
@@ -232,16 +233,16 @@ export default function OrderSuccess({ order }: { order: OrderVM }) {
                           {it.product.name}
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-3 text-dark-700 text-sm">
-                          {it.color?.name ? (
+                          {it.finish?.name ? (
                             <span className="inline-flex items-center gap-1">
                               <span
                                 aria-hidden
                                 className="inline-block w-3 h-3 rounded-full border border-light-300"
                                 style={{
-                                  backgroundColor: it.color?.hex || "#eee",
+                                  backgroundColor: it.finish?.hex || "#eee",
                                 }}
                               />
-                              {it.color.name}
+                              {it.finish.name}
                             </span>
                           ) : null}
                           {it.size ? <span>Size {it.size}</span> : null}

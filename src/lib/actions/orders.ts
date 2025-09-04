@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth/actions";
 import { db } from "@/lib/db";
 import { addresses, NewAddress } from "@/lib/db/schema/addresses";
 import { cartItems, carts } from "@/lib/db/schema/carts";
-import { colors } from "@/lib/db/schema/filters/colors";
+import { finishes } from "@/lib/db/schema/finishes";
 import { sizes } from "@/lib/db/schema/filters/sizes";
 import {
   NewOrder,
@@ -17,7 +17,7 @@ import { productImages } from "@/lib/db/schema/product-images";
 import { products } from "@/lib/db/schema/products";
 import { productVariants } from "@/lib/db/schema/variants";
 import { getStripe } from "@/lib/stripe/client";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import Stripe from "stripe";
 
@@ -59,6 +59,7 @@ export async function createOrder(stripeSessionId: string, userId?: string) {
   )[0];
   if (!cart) throw new Error("Cart not found");
 
+  // Join variant -> product -> images (variant-first), sizes (optional), and finishes (primary option)
   const items = await db
     .select({
       id: cartItems.id,
@@ -196,6 +197,15 @@ export async function getOrder(orderId: string) {
   )[0];
   if (!ord) return null;
 
+  // Ensure one row per order item. We aggregate images to avoid duplicates
+  const imageExpr = sql<string | null>`
+    coalesce(
+      max(case when ${productImages.variantId} = ${productVariants.id} and ${productImages.isPrimary} = true then ${productImages.url} end),
+      max(case when ${productImages.variantId} = ${productVariants.id} then ${productImages.url} end),
+      max(case when ${productImages.productId} = ${products.id} and ${productImages.isPrimary} = true then ${productImages.url} end),
+      max(${productImages.url})
+    )`;
+
   const items = await db
     .select({
       id: orderItems.id,
@@ -206,9 +216,9 @@ export async function getOrder(orderId: string) {
       productId: products.id,
       productName: products.name,
       sizeName: sizes.name,
-      colorName: colors.name,
-      colorHex: colors.hexCode,
-      imageUrl: productImages.url,
+      colorName: finishes.name,
+      colorHex: finishes.hexCode,
+      imageUrl: imageExpr,
     })
     .from(orderItems)
     .leftJoin(
@@ -217,9 +227,27 @@ export async function getOrder(orderId: string) {
     )
     .leftJoin(products, eq(productVariants.productId, products.id))
     .leftJoin(sizes, eq(productVariants.sizeId, sizes.id))
-    .leftJoin(colors, eq(productVariants.colorId, colors.id))
-    .leftJoin(productImages, eq(productImages.variantId, productVariants.id))
-    .where(eq(orderItems.orderId, orderId));
+    .leftJoin(finishes, eq(productVariants.finishId, finishes.id))
+    .leftJoin(
+      productImages,
+      or(
+        eq(productImages.variantId, productVariants.id),
+        eq(productImages.productId, products.id)
+      )
+    )
+    .where(eq(orderItems.orderId, orderId))
+    .groupBy(
+      orderItems.id,
+      orderItems.quantity,
+      orderItems.priceAtPurchase,
+      productVariants.id,
+      productVariants.sku,
+      products.id,
+      products.name,
+      sizes.name,
+      finishes.name,
+      finishes.hexCode
+    );
 
   const payment = (
     await db
@@ -271,7 +299,7 @@ export async function getOrder(orderId: string) {
         sku: i.sku as string,
         product: { id: i.productId as string, name: i.productName as string },
         size: i.sizeName as string | null,
-        color: {
+        finish: {
           name: (i.colorName as string) || null,
           hex: (i.colorHex as string) || null,
         },
