@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
 import AuthForm from "@/components/AuthForm";
 import SocialProviders from "@/components/SocialProviders";
@@ -36,7 +36,9 @@ export default function SignIn() {
         </div>
       </div>
 
-      <AuthForm mode="signin" onSubmit={handleSignIn} />
+      <Suspense fallback={<div className="text-center font-jost text-body">Loading form…</div>}>
+        <AuthForm mode="signin" onSubmit={handleSignIn} />
+      </Suspense>
     </div>
   );
 }

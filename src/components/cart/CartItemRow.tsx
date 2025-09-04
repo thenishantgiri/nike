@@ -4,7 +4,7 @@ import type { UICartItem } from "@/lib/actions/cart";
 import { formatCurrency } from "@/lib/utils/currency";
 import { useCart } from "@/store/cart.store";
 import { Trash2 } from "lucide-react";
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 import Quantity from "./Quantity";
 
 export default function CartItemRow({ item }: { item: UICartItem }) {
@@ -16,7 +16,7 @@ export default function CartItemRow({ item }: { item: UICartItem }) {
       <div className="flex flex-wrap gap-6">
         <div className="w-[120px] h-[120px] bg-light-200 rounded">
           {item.imageUrl ? (
-            <Image
+            <SmartImage
               src={item.imageUrl}
               alt={item.name}
               width={120}
@@ -32,16 +32,28 @@ export default function CartItemRow({ item }: { item: UICartItem }) {
           <div className="text-dark-900 font-jost text-heading-3">
             {item.name}
           </div>
-          <div className="text-dark-700 font-jost text-caption">
-            {item.gender ? `${item.gender}'s Shoes` : "Shoes"}
+          {/* Show variant details for furniture */}
+          <div className="text-dark-700 font-jost text-caption flex items-center gap-2">
+            {item.finish ? (
+              <>
+                {item.finishHex ? (
+                  <span
+                    aria-hidden
+                    className="inline-block w-3 h-3 rounded-full border border-light-300"
+                    style={{ backgroundColor: item.finishHex || "#eee" }}
+                  />
+                ) : null}
+                <span>Finish {item.finish}</span>
+              </>
+            ) : null}
           </div>
           <div className="flex items-center flex-wrap gap-3">
-            <div className="text-dark-700 font-jost text-body">
-              <span className="text-dark-700">Size</span>{" "}
-              <span className="text-dark-900 font-medium">
-                {item.size || "-"}
-              </span>
-            </div>
+            {item.size ? (
+              <div className="text-dark-700 font-jost text-body">
+                <span className="text-dark-700">Size</span>{" "}
+                <span className="text-dark-900 font-medium">{item.size}</span>
+              </div>
+            ) : null}
             <Quantity
               value={item.quantity}
               onChange={(v) => updateQty(item.id, v)}

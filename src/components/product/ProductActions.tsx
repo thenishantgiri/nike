@@ -5,10 +5,12 @@ import { useCart } from "@/store/cart.store";
 
 export default function ProductActions({
   variantId,
+  quantity = 1,
   onAdded,
   disabledReason,
 }: {
   variantId?: string | null;
+  quantity?: number;
   onAdded?: () => void;
   disabledReason?: string;
 }) {
@@ -22,7 +24,8 @@ export default function ProductActions({
         disabled={disabled}
         onClick={async () => {
           if (!variantId) return;
-          await add(variantId, 1);
+          const qty = Math.max(1, Number(quantity) || 1);
+          await add(variantId, qty);
           onAdded?.();
         }}
         className={`flex-1 min-h-12 rounded-full font-jost text-body-medium flex items-center justify-center gap-2 ${

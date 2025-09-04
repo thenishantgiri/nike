@@ -3,7 +3,10 @@ import { boolean, pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-c
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { brands } from "./brands";
 import { categories } from "./categories";
-import { genders } from "./filters/genders";
+import { rooms } from "./rooms";
+import { materials } from "./materials";
+import { finishes } from "./finishes";
+import { styles } from "./styles";
 import { productCollections } from "./product-collections";
 import { productImages } from "./product-images";
 import { reviews } from "./reviews";
@@ -19,9 +22,10 @@ export const products = pgTable(
     categoryId: uuid("category_id")
       .notNull()
       .references(() => categories.id),
-    genderId: uuid("gender_id")
-      .notNull()
-      .references(() => genders.id),
+    roomId: uuid("room_id").references(() => rooms.id),
+    materialId: uuid("material_id").references(() => materials.id),
+    finishId: uuid("finish_id").references(() => finishes.id),
+    styleId: uuid("style_id").references(() => styles.id),
     brandId: uuid("brand_id")
       .notNull()
       .references(() => brands.id),
@@ -33,6 +37,9 @@ export const products = pgTable(
   (t) => ({
     brandPublishedIdx: index("idx_products_brand_published").on(t.brandId, t.isPublished),
     categoryPublishedIdx: index("idx_products_category_published").on(t.categoryId, t.isPublished),
+    roomPublishedIdx: index("idx_products_room_published").on(t.roomId, t.isPublished),
+    materialPublishedIdx: index("idx_products_material_published").on(t.materialId, t.isPublished),
+    finishPublishedIdx: index("idx_products_finish_published").on(t.finishId, t.isPublished),
   })
 );
 
@@ -41,9 +48,21 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     fields: [products.categoryId],
     references: [categories.id],
   }),
-  gender: one(genders, {
-    fields: [products.genderId],
-    references: [genders.id],
+  room: one(rooms, {
+    fields: [products.roomId],
+    references: [rooms.id],
+  }),
+  material: one(materials, {
+    fields: [products.materialId],
+    references: [materials.id],
+  }),
+  finish: one(finishes, {
+    fields: [products.finishId],
+    references: [finishes.id],
+  }),
+  style: one(styles, {
+    fields: [products.styleId],
+    references: [styles.id],
   }),
   brand: one(brands, {
     fields: [products.brandId],

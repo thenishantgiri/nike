@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface AuthFormProps {
   mode: "signin" | "signup";
@@ -19,6 +19,7 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +39,8 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
       if (result?.error) {
         setError(result.error);
       } else if (result?.success) {
-        router.push('/');
+        const redirectTo = searchParams.get('redirect') || '/';
+        router.push(redirectTo);
         router.refresh();
       }
     } catch {

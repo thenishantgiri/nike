@@ -1,13 +1,15 @@
 import { ImageOff } from "lucide-react";
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 import { formatCurrency } from "@/lib/utils/currency";
 
+// Card displays a single product tile on PLP/collections
+// UI semantics: show number of finishes, not colors
 interface CardProps {
   title: string;
   category: string;
   price: number;
   image?: string;
-  colors?: number;
+  finishes?: number; // how many finish variants are available
   badge?: string;
 }
 
@@ -20,7 +22,7 @@ export default function Card({
   category,
   price,
   image,
-  colors = 1,
+  finishes = 1,
   badge,
 }: CardProps) {
   return (
@@ -36,7 +38,7 @@ export default function Card({
 
         <div className="relative h-[390px] w-full rounded-lg overflow-hidden bg-light-200 flex items-center justify-center">
           {hasImage(image) ? (
-            <Image src={image!} alt={title} fill className="object-cover" />
+            <SmartImage src={image!} alt={title} fill className="object-cover" />
           ) : (
             <div className="flex flex-col items-center justify-center text-dark-700 gap-2">
               <ImageOff className="h-8 w-8" />
@@ -59,9 +61,9 @@ export default function Card({
             {formatCurrency(price)}
           </p>
 
-          {colors > 1 && (
+          {finishes > 1 && (
             <p className="font-jost text-caption text-dark-700">
-              {colors} Colour{colors !== 1 ? "s" : ""}
+              {finishes} Finish{finishes !== 1 ? "es" : ""}
             </p>
           )}
         </div>

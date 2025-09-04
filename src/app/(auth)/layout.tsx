@@ -1,4 +1,4 @@
-import Image from "next/image";
+import SmartImage from "@/components/SmartImage";
 
 export default function AuthLayout({
   children,
@@ -13,9 +13,9 @@ export default function AuthLayout({
         <div className="relative z-10 flex flex-col justify-between p-12 text-light-100">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-orange rounded-xl flex items-center justify-center">
-              <Image
+              <SmartImage
                 src="/logo.svg"
-                alt="Nike"
+                alt="Logo"
                 width={24}
                 height={9}
                 className="brightness-0 invert"

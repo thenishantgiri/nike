@@ -1,10 +1,11 @@
 import qs from "query-string";
 
 export type ProductFilters = {
-  gender?: string[]; // ["men","women","unisex"]
-  size?: string[];   // ["xs","s","m","l","xl","8","9","10"]
-  color?: string[];  // ["red","blue","black",...]
-  price?: string[];  // ["0-50","50-100","100-150","150+"]
+  room?: string[];      // ["living-room","bedroom", ...]
+  material?: string[];  // ["solid-wood","metal", ...]
+  finish?: string[];    // ["walnut","oak", ...]
+  collection?: string[]; // ["modern-living","scandinavian", ...]
+  price?: string[];     // ["0-200","200-500","500-1000","1000+"]
 };
 
 export type ProductSort = "featured" | "newest" | "price_asc" | "price_desc";
@@ -23,9 +24,10 @@ export function parseQuery(search: string): ProductQuery {
   };
 
   const q: ProductQuery = {
-    gender: toArray(parsed.gender),
-    size: toArray(parsed.size),
-    color: toArray(parsed.color),
+    room: toArray(parsed.room),
+    material: toArray(parsed.material),
+    finish: toArray(parsed.finish),
+    collection: toArray(parsed.collection),
     price: toArray(parsed.price),
     sort: (parsed.sort as ProductSort) || undefined,
   };
@@ -81,9 +83,10 @@ export type DbProductFilters = {
   search?: string;
   category?: string;
   brand?: string;
-  gender?: string;
-  colors?: string[];
-  sizes?: string[];
+  room?: string;
+  materials?: string[];
+  finishes?: string[];
+  collections?: string[];
   priceMin?: number;
   priceMax?: number;
   sortBy?: "latest" | "oldest" | "price_asc" | "price_desc";
@@ -105,8 +108,9 @@ export function parseFilterParams(searchParams: URLSearchParams): DbProductFilte
     return Number.isFinite(n) ? n : undefined;
   };
 
-  const colors = getArr("colors") || getArr("color");
-  const sizes = getArr("sizes") || getArr("size");
+  const materials = getArr("materials") || getArr("material");
+  const finishes = getArr("finishes") || getArr("finish");
+  const collections = getArr("collections") || getArr("collection");
 
   const priceRanges = getArr("price");
   let priceMin: number | undefined = num("priceMin");
@@ -139,16 +143,17 @@ export function parseFilterParams(searchParams: URLSearchParams): DbProductFilte
   const page = num("page");
   const limit = num("limit");
 
-  const genderArr = getArr("gender");
-  const gender = genderArr && genderArr.length ? genderArr[0] : (searchParams.get("gender") || undefined) || undefined;
+  const roomArr = getArr("room");
+  const room = roomArr && roomArr.length ? roomArr[0] : (searchParams.get("room") || undefined) || undefined;
 
   return {
     search: searchParams.get("search") || undefined,
     category: searchParams.get("category") || undefined,
     brand: searchParams.get("brand") || undefined,
-    gender,
-    colors,
-    sizes,
+    room,
+    materials,
+    finishes,
+    collections,
     priceMin,
     priceMax,
     sortBy,

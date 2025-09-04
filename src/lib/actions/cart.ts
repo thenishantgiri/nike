@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   carts,
@@ -9,8 +9,7 @@ import {
   products,
   productImages,
   sizes,
-  colors,
-  genders,
+  finishes,
 } from "../db/schema";
 import {
   createGuestSession,
@@ -19,14 +18,15 @@ import {
 } from "../auth/actions";
 import { revalidatePath } from "next/cache";
 
+// UI cart item for furniture: finish is the primary variant option
 export type UICartItem = {
   id: string;
   productVariantId: string;
   productId: string;
   name: string;
-  gender: string | null;
   size: string | null;
-  color: string | null;
+  finish: string | null;
+  finishHex?: string | null;
   price: number;
   imageUrl: string | null;
   quantity: number;
@@ -41,7 +41,21 @@ export type UICart = {
 
 async function resolveSession() {
   const user = await getCurrentUser();
-  if (user) return { userId: user.id as string | null, guestId: null };
+  if (user?.id) {
+    // Ensure the user exists in our DB; after a drop/reseed the auth user may not yet be in the DB
+    try {
+      const { user: userTable } = await import("../db/schema/user");
+      const found = await db
+        .select()
+        .from(userTable)
+        .where(eq(userTable.id, user.id as string))
+        .limit(1);
+      if (found.length) return { userId: user.id as string | null, guestId: null };
+      // Else fall through to guest session
+    } catch {
+      // If any error in checking, fallback to guest
+    }
+  }
   let guest = await getGuestSession();
   if (!guest) {
     const created = await createGuestSession();
@@ -77,6 +91,16 @@ export async function getCart(): Promise<UICart> {
 
   const cartId = found[0].id as string;
 
+  // Pick a single image per line item: prefer variant primary, then any variant image, then product primary
+  const imageExpr = sql<string | null>`
+    coalesce(
+      max(case when ${productImages.variantId} = ${productVariants.id} and ${productImages.isPrimary} = true then ${productImages.url} end),
+      max(case when ${productImages.variantId} = ${productVariants.id} then ${productImages.url} end),
+      max(case when ${productImages.productId} = ${products.id} and ${productImages.isPrimary} = true then ${productImages.url} end),
+      max(${productImages.url})
+    )
+  `;
+
   const rows = await db
     .select({
       id: cartItems.id,
@@ -84,23 +108,35 @@ export async function getCart(): Promise<UICart> {
       productVariantId: productVariants.id,
       productId: products.id,
       name: products.name,
-      gender: genders.label,
       size: sizes.name,
-      color: colors.name,
+      finish: finishes.name,
+      finishHex: finishes.hexCode,
       price: sql<number>`coalesce(${productVariants.salePrice}, ${productVariants.price})`,
-      imageUrl: productImages.url,
+      imageUrl: imageExpr,
     })
     .from(cartItems)
     .innerJoin(productVariants, eq(productVariants.id, cartItems.productVariantId))
     .innerJoin(products, eq(products.id, productVariants.productId))
     .leftJoin(sizes, eq(sizes.id, productVariants.sizeId))
-    .leftJoin(colors, eq(colors.id, productVariants.colorId))
-    .leftJoin(genders, eq(genders.id, products.genderId))
+    .leftJoin(finishes, eq(finishes.id, productVariants.finishId))
     .leftJoin(
       productImages,
-      and(eq(productImages.productId, products.id), eq(productImages.isPrimary, true))
+      or(
+        eq(productImages.variantId, productVariants.id),
+        eq(productImages.productId, products.id)
+      )
     )
     .where(eq(cartItems.cartId, cartId))
+    .groupBy(
+      cartItems.id,
+      cartItems.quantity,
+      productVariants.id,
+      products.id,
+      products.name,
+      sizes.name,
+      finishes.name,
+      finishes.hexCode
+    )
     .orderBy(desc(cartItems.createdAt));
 
   const items: UICartItem[] = rows.map((r) => ({
@@ -108,9 +144,9 @@ export async function getCart(): Promise<UICart> {
     productVariantId: r.productVariantId,
     productId: r.productId,
     name: r.name,
-    gender: r.gender ?? null,
     size: r.size ?? null,
-    color: r.color ?? null,
+    finish: r.finish ?? null,
+    finishHex: (r.finishHex as string | null) ?? null,
     price: Number(r.price),
     imageUrl: r.imageUrl ?? null,
     quantity: r.quantity,
@@ -122,25 +158,18 @@ export async function getCart(): Promise<UICart> {
 export async function addCartItem(input: { productVariantId: string; quantity?: number }) {
   const qty = Math.max(1, input.quantity ?? 1);
   const cartId = await getOrCreateCartId();
-
-  const existing = await db
-    .select()
-    .from(cartItems)
-    .where(
-      and(eq(cartItems.cartId, cartId), eq(cartItems.productVariantId, input.productVariantId))
-    )
-    .limit(1);
-
-  if (existing.length) {
-    await db
-      .update(cartItems)
-      .set({ quantity: existing[0].quantity + qty, updatedAt: sql`now()` })
-      .where(eq(cartItems.id, existing[0].id));
-  } else {
-    await db
-      .insert(cartItems)
-      .values({ cartId, productVariantId: input.productVariantId, quantity: qty });
-  }
+  // Upsert to avoid duplicate rows on rapid clicks or concurrent calls
+  await db
+    .insert(cartItems)
+    .values({ cartId, productVariantId: input.productVariantId, quantity: qty })
+    .onConflictDoUpdate({
+      target: [cartItems.cartId, cartItems.productVariantId],
+      set: {
+        // increment existing quantity atomically
+        quantity: sql`${cartItems.quantity} + ${qty}`,
+        updatedAt: sql`now()`,
+      },
+    });
 
   revalidatePath("/cart");
   return getCart();

@@ -171,19 +171,35 @@ export const mockProducts: MockProduct[] = [
 ];
 
 export const filterOptions = {
-  gender: [
-    { label: "Men", value: "men" },
-    { label: "Women", value: "women" },
-    { label: "Unisex", value: "unisex" },
+  collection: [
+    { label: "Modern Living", value: "modern-living" },
+    { label: "Scandinavian", value: "scandinavian" },
+    { label: "New Arrivals", value: "new-arrivals" },
   ],
-  size: ["5","6","7","8","9","10","11","12"].map((s) => ({ label: s, value: s })),
-  color: [
-    "white","black","red","green","yellow","blue","pink","orange","teal","navy","beige","tan"
-  ].map((c) => ({ label: c[0].toUpperCase() + c.slice(1), value: c })),
+  room: [
+    { label: "Living Room", value: "living-room" },
+    { label: "Bedroom", value: "bedroom" },
+    { label: "Dining Room", value: "dining-room" },
+    { label: "Office", value: "office" },
+  ],
+  material: [
+    { label: "Solid Wood", value: "solid-wood" },
+    { label: "Metal", value: "metal" },
+    { label: "Glass", value: "glass" },
+    { label: "Fabric", value: "fabric" },
+    { label: "Leather", value: "leather" },
+  ],
+  finish: [
+    { label: "Natural Oak", value: "natural-oak" },
+    { label: "Walnut", value: "walnut" },
+    { label: "Matte Black", value: "matte-black" },
+    { label: "Matte White", value: "matte-white" },
+    { label: "Smoked", value: "smoked" },
+  ],
   price: [
-    { label: "$0 - $50", value: "0-50" },
-    { label: "$50 - $100", value: "50-100" },
-    { label: "$100 - $150", value: "100-150" },
-    { label: "Over $150", value: "150+" },
+    { label: "$0 - $200", value: "0-200" },
+    { label: "$200 - $500", value: "200-500" },
+    { label: "$500 - $1000", value: "500-1000" },
+    { label: "Over $1000", value: "1000+" },
   ],
 } as const;
